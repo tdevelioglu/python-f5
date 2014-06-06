@@ -39,57 +39,75 @@ class Poolmember(object):
     def __repr__(self):
         return "f5.poolmember('%s', %s, '%s')" % (self._node, self._port, self._pool)
 
+    @f5.util.lbmethod
     def _get_addrport(self):
         return {'address': self._node.name, 'port': self._port}
 
+    @f5.util.lbmethod
     def _get_address(self):
         return self.__wsdl.get_member_address([self._pool.name], [[self._get_addrport()]])[0][0]
 
+    @f5.util.lbmethod
     def _get_connection_limit(self):
         return self.__wsdl.get_member_connection_limit([self._pool.name], [[self._get_addrport()]])[0][0]
 
+    @f5.util.lbmethod
     def _get_description(self):
         return self.__wsdl.get_member_description([self._pool.name], [[self._get_addrport()]])[0][0]
 
+    @f5.util.lbmethod
     def _get_dynamic_ratio(self):
         return self.__wsdl.get_member_dynamic_ratio([self._pool.name], [[self._get_addrport()]])[0][0]
 
+    @f5.util.lbmethod
     def _get_priority(self):
         return self.__wsdl.get_member_priority([self._pool.name], [[self._get_addrport()]])[0][0]
 
+    @f5.util.lbmethod
     def _get_rate_limit(self):
         return self.__wsdl.get_member_rate_limit([self._pool.name], [[self._get_addrport()]])[0][0]
 
+    @f5.util.lbmethod
     def _get_ratio(self):
         return self.__wsdl.get_member_ratio([self._pool.name], [[self._get_addrport()]])[0][0]
 
+    @f5.util.lbmethod
     def _get_object_status(self):
         return self.__wsdl.get_member_object_status([self._pool.name], [[self._get_addrport()]])[0][0]
 
+    @f5.util.lbwriter
     def _set_description(self, value):
         self.__wsdl.set_member_description([self._pool.name], [[self._get_addrport()]], [[value]])
 
+    @f5.util.lbwriter
     def _set_connection_limit(self, value):
         self.__wsdl.set_member_connection_limit([self._pool.name], [[self._get_addrport()]], [[value]])
 
+    @f5.util.lbwriter
     def _set_dynamic_ratio(self, value):
         self.__wsdl.set_member_dynamic_ratio([self._pool.name], [[self._get_addrport()]], [[value]])
 
+    @f5.util.lbwriter
     def _set_priority(self, value):
         self.__wsdl.set_member_priority([self._pool.name], [[self._get_addrport()]], [[value]])
 
+    @f5.util.lbwriter
     def _set_rate_limit(self, value):
         self.__wsdl.set_member_rate_limit([self._pool.name], [[self._get_addrport()]], [[value]])
 
+    @f5.util.lbwriter
     def _set_ratio(self, value):
         self.__wsdl.set_member_ratio([self._pool.name], [[self._get_addrport()]], [[value]])
 
+    @f5.util.lbwriter
     def _set_session_enabled_state(self, value):
         self.__wsdl.set_member_session_enabled_state([self._pool.name], [[self._get_addrport()]], [[value]])
 
+    @f5.util.lbwriter
     def _create(self):
         self.__wsdl.add_member_v2([self._pool.name], [[self._get_addrport()]])
 
+    @f5.util.lbwriter
     def _remove(self):
         self.__wsdl.remove_member_v2([self._pool.name], [[self._get_addrport()]])
 
@@ -274,8 +292,6 @@ class Poolmember(object):
     ###########################################################################
     # Public API
     ###########################################################################
-    @f5.util.lbmethod
-    @f5.util.lbwriter
     @f5.util.lbtransaction
     def save(self):
         """Save the poolmember to the lb"""
@@ -297,13 +313,10 @@ class Poolmember(object):
         if self._ratio is not None:
             self.ratio = self._ratio
 
-    @f5.util.lbmethod
-    @f5.util.lbwriter
     def delete(self):
         """Delete the poolmember from the lb"""
         self._remove(self)
 
-    @f5.util.lbmethod
     def exists(self):
         """Check if poolmember exists on the lb"""
         try:
@@ -318,7 +331,6 @@ class Poolmember(object):
 
         return True
 
-    @f5.util.lbmethod
     def refresh(self):
         """Fetch all attributes from the lb"""
         self.address

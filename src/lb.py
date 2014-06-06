@@ -520,3 +520,9 @@ class Lb(object):
             nodes = filter(lambda node: pattern.match(node), nodes)
 
         return self._nodes_get_objects(nodes, minimal)
+
+    def rule_get(self, name):
+        rule = f5.Rule(name=name, lb=self)
+        rule.refresh()
+
+        return rule

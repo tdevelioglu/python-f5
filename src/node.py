@@ -30,48 +30,63 @@ class Node(object):
     def __repr__(self):
         return "f5.node('%s')" % (self._name)
 
+    @f5.util.lbwriter
     def _create(self):
         self.__wsdl.create([self._name], [self._address], [self._connection_limit])
 
+    @f5.util.lbmethod
     def _get_address(self):
         return self.__wsdl.get_address([self._name])[0]
 
+    @f5.util.lbmethod
     def _get_connection_limit(self):
         return self.__wsdl.get_connection_limit([self._name])[0]
 
+    @f5.util.lbmethod
     def _get_description(self):
         return self.__wsdl.get_description([self._name])[0]
 
+    @f5.util.lbmethod
     def _get_dynamic_ratio(self):
         return self.__wsdl.get_dynamic_ratio_v2([self._name])[0]
 
+    @f5.util.lbmethod
     def _get_rate_limit(self):
         return self.__wsdl.get_rate_limit([self._name])[0]
 
+    @f5.util.lbmethod
     def _get_ratio(self):
         return self.__wsdl.get_ratio([self._name])[0]
 
+    @f5.util.lbmethod
     def _get_object_status(self):
         return self.__wsdl.get_member_object_status([self._name])[0]
 
+    @f5.util.lbwriter
     def _set_connection_limit(self, value):
          self.__wsdl.set_connection_limit([self._name], [value])
 
+    @f5.util.lbwriter
     def _set_description(self, value):
          self.__wsdl.set_description([self._name], [value])
 
+    @f5.util.lbwriter
     def _set_dynamic_ratio(self, value):
          self.__wsdl.set_dynamic_ratio_v2([self._name], [value])
 
+    @f5.util.lbwriter
     def _set_rate_limit(self, value):
          self.__wsdl.set_rate_limit([self._name], [value])
 
+    @f5.util.lbwriter
     def _set_ratio(self, value):
          self.__wsdl.set_ratio([self._name], [value])
 
+    @f5.util.lbwriter
     def _set_session_enabled_state(self, value):
         self.__wsdl.set_member_session_enabled_state([self._name], [[value]])
 
+    @f5.util.lbwriter
     def _delete_node_address(self):
         self.__wsdl.delete_node_address([self._name])
     ###########################################################################
@@ -82,6 +97,12 @@ class Node(object):
     @property
     def name(self):
         return self._name
+
+    @name.setter
+    def name(self,value):
+        if self._lb:
+            raise AttributeError("set attribute name not allowed when linked to lb")
+        self._name = name
 
     #### lb ####
     @property
@@ -163,7 +184,7 @@ class Node(object):
             elif enabled_status == 'ENABLED_STATUS_DISABLED':
                 self._enabled = False
             else:
-                raise RuntimeError('Unknown enabled_status %s received for Node', enabled_status)
+                raise RuntimeError('Unknown enabled_status %s received for Node' % (enabled_status))
 
         return self._enabled
 
@@ -212,7 +233,6 @@ class Node(object):
     ###########################################################################
     # Public API
     ###########################################################################
-    @f5.util.lbmethod
     def exists(self):
         try:
             self._get_address()
@@ -221,12 +241,11 @@ class Node(object):
                 return False
             else:
                 raise
+        except:
+            raise
 
         return True
 
-    @f5.util.lbmethod
-    @f5.util.lbrestore_session_values
-    @f5.util.lbwriter
     @f5.util.lbtransaction
     def save(self):
         """Save the node to the lb"""
@@ -246,7 +265,6 @@ class Node(object):
         if self._ratio is not None:
             self.ratio = self._ratio
 
-    @f5.util.lbmethod
     def refresh(self):
         """Update all attributes from the lb"""
         self.address
@@ -257,7 +275,6 @@ class Node(object):
         self.rate_limit
         self.ratio
 
-    @f5.util.lbwriter
     def delete(self):
         """Delete the node from the lb"""
         self._delete_node_address()

@@ -51,27 +51,34 @@ class Pool(object):
     def __repr__(self):
         return "f5.pool('%s')" % (self._name)
 
+    @f5.util.lbwriter
     def _create(self):
         lbmethod = 'LB_METHOD_' + self._lbmethod.upper()
 
         addrportsq = self._pms_to_addrportsq(self._members)
         self.__wsdl.create_v2([self._name], [lbmethod], [addrportsq])
 
+    @f5.util.lbmethod
     def _get_description(self):
         return self.__wsdl.get_description([self._name])[0]
 
+    @f5.util.lbmethod
     def _get_lb_method(self):
         return self.__wsdl.get_lb_method([self._name])[0]
 
+    @f5.util.lbmethod
     def _get_members(self):
         return self.__wsdl.get_member_v2([self._name])[0]
 
+    @f5.util.lbwriter
     def _set_description(self, value):
         self.__wsdl.set_description([self._name], [value])
 
+    @f5.util.lbwriter
     def _set_lb_method(self, value):
         self.__wsdl.set_lb_method([self._name], [value])
 
+    @f5.util.lbwriter
     def _set_members(self, value):
         self.__wsdl.set_member_v2([self._name], [value])
 
@@ -163,7 +170,6 @@ class Pool(object):
     ###########################################################################
     # Public API
     ###########################################################################
-    @f5.util.lbmethod
     def refresh(self):
         """Fetch all attributes from the lb"""
         self.description
@@ -183,9 +189,6 @@ class Pool(object):
 
         return True
 
-    @f5.util.lbmethod
-    @f5.util.lbrestore_session_values
-    @f5.util.lbwriter
     @f5.util.lbtransaction
     def save(self):
         if not self.exists():

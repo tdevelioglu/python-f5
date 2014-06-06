@@ -29,6 +29,7 @@ from functools import wraps
 # Wrap a method inside a transaction (non-lb version)
 def lbtransaction(func):
     @wraps(func)
+    @lbwriter
     def wrapper(self, *args, **kwargs):
         # Only if there is no existing transaction
         our_transaction = not self._lb.transaction
@@ -68,6 +69,8 @@ def lbmethod(func):
 # Set active folder to writable one if it is not
 def lbwriter(func):
     @wraps(func)
+    @lbmethod
+    @lbrestore_session_values
     def wrapper(self, *args, **kwargs):
         if self._lb._active_folder == '/':
             self._lb.active_folder = '/Common'

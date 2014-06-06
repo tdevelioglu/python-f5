@@ -48,6 +48,27 @@ A library to make manipulating F5 loadbalancers easy
     # Pools
     pools = lb.pools_get()
 
+    # Change the active folder
+    if lb.active_folder != '/Common':
+        lb.active_folder = '/Common'
+
+    # Enable recursive querying
+    lb.recursive_query = True
+
+    # Perform transactions
+    node = lb.node_get('/Common/node-01')
+    pm   = lb.get_pm('/Common/node-01'):
+
+    lb.transaction = True
+    do_stuff()
+
+    if happy(): 
+        # rollback transaction
+        lb.transaction = False
+    else:
+        # or submit
+        lb.submit_transaction()
+
 #### Nodes
     import f5
     lb = f5.Lb('f5.example.com', 'admin', 'admin')
