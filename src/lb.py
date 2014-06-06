@@ -184,7 +184,8 @@ class Lb(object):
     ###########################################################################
     # INTERNAL API
     ###########################################################################
-    #### transaction methods ####
+
+    #### Session methods ####
     def _ensure_transaction(self):
         wsdl = self._transport.System.Session
         try:
@@ -254,81 +255,6 @@ class Lb(object):
         wsdl = self._transport.System.Session
         wsdl.set_recursive_query_state(state)
 
-    #### PM methods ####
-    def _pools_get(self):
-        wsdl = self._transport.LocalLB.Pool
-        return wsdl.get_list()
-
-    def _pms_get(self, pools):
-        wsdl = self._transport.LocalLB.Pool
-        return wsdl.get_member_v2(pools)
-
-    def _pms_get_address(self, pools, ipaddrsq2):
-        wsdl = self._transport.LocalLB.Pool
-        return wsdl.get_member_address(pools, ipaddrsq2)
-
-    def _pms_get_connection_limit(self, pools, ipaddrsq2):
-        wsdl = self._transport.LocalLB.Pool
-        return wsdl.get_member_connection_limit(pools, ipaddrsq2)
-
-    def _pms_get_description(self, pools, ipaddrsq2):
-        wsdl = self._transport.LocalLB.Pool
-        return wsdl.get_member_description(pools, ipaddrsq2)
-
-    def _pms_get_dynamic_ratio(self, pools, ipaddrsq2):
-        wsdl = self._transport.LocalLB.Pool
-        return wsdl.get_member_dynamic_ratio(pools, ipaddrsq2)
-
-    def _pms_get_priority(self, pools, ipaddrsq2):
-        wsdl = self._transport.LocalLB.Pool
-        return wsdl.get_member_priority(pools, ipaddrsq2)
-
-    def _pms_get_rate_limit(self, pools, ipaddrsq2):
-        wsdl = self._transport.LocalLB.Pool
-        return wsdl.get_member_rate_limit(pools, ipaddrsq2)
-
-    def _pms_get_ratio(self, pools, ipaddrsq2):
-        wsdl = self._transport.LocalLB.Pool
-        return wsdl.get_member_ratio(pools, ipaddrsq2)
-
-    def _pms_get_objects(self, pools, addrportsq2, minimal=False):
-        pms = []
-
-        # F5 skips empty lists in the sequence causing a mismatch in list indices,
-        # so we have to remove empty pools before  we can fetch other attributes.
-        f5.util.prune_f5_lists(addrportsq2, pools)
-
-        # Return an empty list if we pruned all pools (i.e. all pools were empty)
-        if not pools:
-            return []
-
-        if not minimal:
-            address2          = self._pms_get_address(pools, addrportsq2)
-            connection_limit2 = self._pms_get_connection_limit(pools, addrportsq2)
-            description2      = self._pms_get_description(pools, addrportsq2)
-            dynamic_ratio2    = self._pms_get_dynamic_ratio(pools, addrportsq2)
-            priority2         = self._pms_get_priority(pools, addrportsq2)
-            rate_limit2       = self._pms_get_rate_limit(pools, addrportsq2)
-            ratio2            = self._pms_get_ratio(pools, addrportsq2)
-
-        for idx, addrportsq in enumerate(addrportsq2):
-            for idx_inner, addrport in enumerate(addrportsq):
-                pm    = f5.Poolmember(addrport['address'], addrport['port'], pools[idx])
-                pm.lb = self
-
-                if not minimal:
-                    pm._address          = address2[idx][idx_inner]
-                    pm._connection_limit = connection_limit2[idx][idx_inner]
-                    pm._description      = description2[idx][idx_inner]
-                    pm._dynamic_ratio    = dynamic_ratio2[idx][idx_inner]
-                    pm._priority         = priority2[idx][idx_inner]
-                    pm._rate_limit       = rate_limit2[idx][idx_inner]
-                    pm._ratio            = ratio2[idx][idx_inner]
-
-                pms.append(pm)
-
-        return pms
-
     #### Node methods ####
     def _nodes_get(self):
         wsdl = self._transport.LocalLB.NodeAddressV2
@@ -358,6 +284,7 @@ class Lb(object):
         wsdl = self._transport.LocalLB.NodeAddressV2
         return wsdl.get_ratio(names)
 
+    #### Pool methods ####
     def _pools_get_description(self, names):
         wsdl = self._transport.LocalLB.Pool
         return wsdl.get_description(names)
@@ -370,30 +297,79 @@ class Lb(object):
         wsdl = self._transport.LocalLB.Pool
         return wsdl.get_member_v2(names)
 
-    def _nodes_get_objects(self, names):
-        nodes = []
+    def _pools_get_list(self):
+        wsdl = self._transport.LocalLB.Pool
+        return wsdl.get_list()
 
-        addresses         = self._nodes_get_address(names)
-        connection_limits = self._nodes_get_connection_limit(names)
-        descriptions      = self._nodes_get_description(names)
-        dynamic_ratios    = self._nodes_get_dynamic_ratio(names)
-        rate_limits       = self._nodes_get_rate_limit(names)
-        ratios            = self._nodes_get_ratio(names)
+    def _pools_get_member(self, pools):
+        wsdl = self._transport.LocalLB.Pool
+        return wsdl.get_member_v2(pools)
 
-        for idx,name in enumerate(names):
-            node                  = f5.Node(name)
+    def _pools_get_member_address(self, pools, ipaddrsq2):
+        wsdl = self._transport.LocalLB.Pool
+        return wsdl.get_member_address(pools, ipaddrsq2)
 
-            node.address          = addresses[idx]
-            node.connection_limit = connection_limits[idx]
-            node.description      = descriptions[idx]
-            node.dynamic_ratio    = dynamic_ratios[idx]
-            node.rate_limit       = rate_limits[idx]
-            node.ratio            = ratios[idx]
-            node.lb               = self
+    def _pools_get_member_connection_limit(self, pools, ipaddrsq2):
+        wsdl = self._transport.LocalLB.Pool
+        return wsdl.get_member_connection_limit(pools, ipaddrsq2)
 
-            nodes.append(node)
+    def _pools_get_member_description(self, pools, ipaddrsq2):
+        wsdl = self._transport.LocalLB.Pool
+        return wsdl.get_member_description(pools, ipaddrsq2)
 
-        return nodes
+    def _pools_get_member_dynamic_ratio(self, pools, ipaddrsq2):
+        wsdl = self._transport.LocalLB.Pool
+        return wsdl.get_member_dynamic_ratio(pools, ipaddrsq2)
+
+    def _pools_get_member_priority(self, pools, ipaddrsq2):
+        wsdl = self._transport.LocalLB.Pool
+        return wsdl.get_member_priority(pools, ipaddrsq2)
+
+    def _pools_get_member_rate_limit(self, pools, ipaddrsq2):
+        wsdl = self._transport.LocalLB.Pool
+        return wsdl.get_member_rate_limit(pools, ipaddrsq2)
+
+    def _pools_get_member_ratio(self, pools, ipaddrsq2):
+        wsdl = self._transport.LocalLB.Pool
+        return wsdl.get_member_ratio(pools, ipaddrsq2)
+
+    def _pools_get_member_objects(self, pools, addrportsq2, minimal=False):
+        pms = []
+
+        # F5 skips empty lists in the sequence causing a mismatch in list indices,
+        # so we have to remove empty pools before  we can fetch other attributes.
+        f5.util.prune_f5_lists(addrportsq2, pools)
+
+        # Return an empty list if we pruned all pools (i.e. all pools were empty)
+        if not pools:
+            return []
+
+        if not minimal:
+            address2          = self._pools_get_member_address(pools, addrportsq2)
+            connection_limit2 = self._pools_get_member_connection_limit(pools, addrportsq2)
+            description2      = self._pools_get_member_description(pools, addrportsq2)
+            dynamic_ratio2    = self._pools_get_member_dynamic_ratio(pools, addrportsq2)
+            priority2         = self._pools_get_member_priority(pools, addrportsq2)
+            rate_limit2       = self._pools_get_member_rate_limit(pools, addrportsq2)
+            ratio2            = self._pools_get_member_ratio(pools, addrportsq2)
+
+        for idx, addrportsq in enumerate(addrportsq2):
+            for idx_inner, addrport in enumerate(addrportsq):
+                pm    = f5.Poolmember(addrport['address'], addrport['port'], pools[idx])
+                pm.lb = self
+
+                if not minimal:
+                    pm._address          = address2[idx][idx_inner]
+                    pm._connection_limit = connection_limit2[idx][idx_inner]
+                    pm._description      = description2[idx][idx_inner]
+                    pm._dynamic_ratio    = dynamic_ratio2[idx][idx_inner]
+                    pm._priority         = priority2[idx][idx_inner]
+                    pm._rate_limit       = rate_limit2[idx][idx_inner]
+                    pm._ratio            = ratio2[idx][idx_inner]
+
+                pms.append(pm)
+
+        return pms
 
     def _pools_get_objects(self, names, minimal=False):
         """Returns a list of pool objects from a list of pool names"""
@@ -418,6 +394,36 @@ class Lb(object):
 
         return pools
 
+    #### Node methods ####
+    def _nodes_get_objects(self, names, minimal=False):
+        """Returns a list of node objects from a list of node names"""
+        nodes = []
+
+        if not names:
+            return nodes
+
+        if not minimal:
+            addresses         = self._nodes_get_address(names)
+            connection_limits = self._nodes_get_connection_limit(names)
+            descriptions      = self._nodes_get_description(names)
+            dynamic_ratios    = self._nodes_get_dynamic_ratio(names)
+            rate_limits       = self._nodes_get_rate_limit(names)
+            ratios            = self._nodes_get_ratio(names)
+
+        for idx,name in enumerate(names):
+            node = f5.Node(name, lb=self)
+
+            if not minimal:
+                node._address          = addresses[idx]
+                node._connection_limit = connection_limits[idx]
+                node._description      = descriptions[idx]
+                node._dynamic_ratio    = dynamic_ratios[idx]
+                node._rate_limit       = rate_limits[idx]
+                node._ratio            = ratios[idx]
+
+            nodes.append(node)
+
+        return nodes
     ###########################################################################
     # PUBLIC API
     ###########################################################################
@@ -425,20 +431,15 @@ class Lb(object):
         self._submit_transaction()
     
     @recursivereader
-    def pools_search(self, pattern, minimal=False):
-        if not isinstance(pattern, re._pattern_type):
-            pattern = re.compile(rex)
+    def pools_get(self, pattern=None, minimal=False):
+        pools = self._pools_get_list()
 
-        pools = []
-        for pool in self._pools_get():
-            if pattern.match(pool):
-                pools.append(pool)
+        if pattern is not None:
+            if not isinstance(pattern, re._pattern_type):
+                pattern = re.compile(pattern)
+            pools = filter(lambda pool: pattern.match(pool), pools)
 
         return self._pools_get_objects(pools, minimal)
-
-    @recursivereader
-    def pools_get(self, minimal=False):
-        return self._pools_get_objects(self._pools_get(), minimal)
 
     def pool_get(self, name):
         """Returns a single F5 pool"""
@@ -465,19 +466,18 @@ class Lb(object):
             else:
                 pools = [pools]
         else:
-            pools = self._pools_get()
+            pools = self._pools_get_list()
 
-        if not isinstance(pattern, re._pattern_type):
-            pattern = re.compile(pattern)
-
-        addrportsq2 = self._pms_get(pools)
+        addrportsq2 = self._pools_get_member(pools)
 
         if pattern is not None:
+            if not isinstance(pattern, re._pattern_type):
+                pattern = re.compile(pattern)
             for idx,addrportsq in enumerate(addrportsq2):
                 addrportsq2[idx] = filter(
                         lambda ap: pattern.match('%s:%s' % (ap['address'], ap['port'])), addrportsq)
 
-        return self._pms_get_objects(pools, addrportsq2, minimal)
+        return self._pools_get_member_objects(pools, addrportsq2, minimal)
 
     def pm_move(self, pm, pool):
         """Moves an existing pm to another pool and returns a reference"""
@@ -512,19 +512,11 @@ class Lb(object):
         return node
 
     @recursivereader
-    def nodes_get(self):
+    def nodes_get(self, pattern=None, minimal=False):
         nodes = self._nodes_get()
-        return self._nodes_get_objects(nodes)
+        if pattern is not None:
+            if not isinstance(pattern, re._pattern_type):
+                pattern = re.compile(pattern)
+            nodes = filter(lambda node: pattern.match(node), nodes)
 
-    @recursivereader
-    def nodes_search(self, rex):
-        nodes = []
-
-        if not isinstance(rex, re._pattern_type):
-            rex = re.compile(rex)
-
-        for node in self._nodes_get():
-            if rex.match(node):
-                nodes.append(node)
-
-        return self._nodes_get_objects(nodes)
+        return self._nodes_get_objects(nodes, minimal)

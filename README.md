@@ -42,8 +42,13 @@ A library to make manipulating F5 loadbalancers easy
     # Give me *ALL* poolmembers
     pms =  lb.pms_get()
 
-#### Nodes
+    # Nodes are similar
+    nodes = lb.nodes_get()
 
+    # Pools
+    pools = lb.pools_get()
+
+#### Nodes
     import f5
     lb = f5.Lb('f5.example.com', 'admin', 'admin')
 
@@ -116,7 +121,7 @@ A library to make manipulating F5 loadbalancers easy
 
     # Basic create
     pool = f5.Pool(name='/Common/pool-01', lbmethod='ratio_member', members=[], lb=lb)
-    pool.save
+    pool.save()
 
     # This time with a member
     node = lb.node_get('/Common/node-01')
@@ -127,6 +132,13 @@ A library to make manipulating F5 loadbalancers easy
 
     # Get existing pool
     pool = lb.pool_get('/Common/pool-01)
+
+    # Get pool members
+    poolmembers = pool.members
+
+    # You can directly reference member attributes
+    poolmembers[0].connection_limit
+    poolmembers[0].ratio = 10
 
     # Set some attributes synchronously
     pool.lbmethod    = 'round_robin'
@@ -178,3 +190,7 @@ A library to make manipulating F5 loadbalancers easy
 
     pm.lb               = lb
     pm.save()
+
+    # You can also directly reference the linked node object's attributes
+    pm.node.connection_limit
+    pm.node.ratio = 10

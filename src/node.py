@@ -70,8 +70,10 @@ class Node(object):
          self.__wsdl.set_ratio([self._name], [value])
 
     def _set_session_enabled_state(self, value):
-        self.__wsdl.set_member_session_enabled_state([self._name] [[value]])
+        self.__wsdl.set_member_session_enabled_state([self._name], [[value]])
 
+    def _delete_node_address(self):
+        self.__wsdl.delete_node_address([self._name])
     ###########################################################################
     # Properties
     ###########################################################################
@@ -255,3 +257,7 @@ class Node(object):
         self.rate_limit
         self.ratio
 
+    @f5.util.lbwriter
+    def delete(self):
+        """Delete the node from the lb"""
+        self._delete_node_address()
