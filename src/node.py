@@ -84,7 +84,7 @@ class Node(object):
 
     @f5.util.lbwriter
     def _set_session_enabled_state(self, value):
-        self.__wsdl.set_member_session_enabled_state([self._name], [[value]])
+        self.__wsdl.set_session_enabled_state([self._name], [value])
 
     @f5.util.lbwriter
     def _delete_node_address(self):
