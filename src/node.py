@@ -60,7 +60,7 @@ class Node(object):
 
     @f5.util.lbmethod
     def _get_object_status(self):
-        return self.__wsdl.get_member_object_status([self._name])[0]
+        return self.__wsdl.get_object_status([self._name])[0]
 
     @f5.util.lbwriter
     def _set_connection_limit(self, value):

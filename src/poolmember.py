@@ -315,7 +315,7 @@ class Poolmember(object):
 
     def delete(self):
         """Delete the poolmember from the lb"""
-        self._remove(self)
+        self._remove()
 
     def exists(self):
         """Check if poolmember exists on the lb"""
