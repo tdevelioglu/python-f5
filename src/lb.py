@@ -462,7 +462,7 @@ class Lb(object):
 
         if pools is not None:
             if isinstance(pools, list):
-                pass
+                pools = [pool.name for pool in pools]
             else:
                 pools = [pools]
         else:

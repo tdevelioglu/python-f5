@@ -184,7 +184,7 @@ class Node(object):
             elif enabled_status == 'ENABLED_STATUS_DISABLED':
                 self._enabled = False
             else:
-                raise RuntimeError('Unknown enabled_status %s received for Node' % (enabled_status))
+                raise RuntimeError("Unknown enabled_status %s received for Node: '%s'" % enabled_status)
 
         return self._enabled
 
@@ -260,6 +260,8 @@ class Node(object):
             self.description = self._description
         if self._dynamic_ratio is not None:
             self.dynamic_ratio = self._dynamic_ratio
+        if self._enabled is not None:
+            self.enabled = self._enabled
         if self._rate_limit is not None:
             self.rate_limit = self._rate_limit
         if self._ratio is not None:

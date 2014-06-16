@@ -263,15 +263,18 @@ class Poolmember(object):
 
     #### enabled ####
     @property
+    # TODO: There are more states than true/false, what do we do ?
     def enabled(self):
         if self._lb:
             enabled_status = self._get_object_status()['enabled_status']
             if enabled_status == 'ENABLED_STATUS_ENABLED':
                 self._enabled = True
+            elif enabled_status == 'ENABLED_STATUS_DISABLED_BY_PARENT':
+                self._enabled = True
             elif enabled_status == 'ENABLED_STATUS_DISABLED':
                 self._enabled = False
             else:
-                raise RuntimeError('Unknown enabled_status %s received for poolmember', enabled_status)
+                raise RuntimeError("Unknown enabled_status %s received for poolmember: '%s'" % enabled_status)
 
         return self._enabled
 
