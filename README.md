@@ -63,11 +63,11 @@ A library to make manipulating F5 loadbalancers easy
     do_stuff()
 
     if happy(): 
-        # rollback transaction
-        lb.transaction = False
-    else:
-        # or submit
+        # submit
         lb.submit_transaction()
+    else:
+        # or rollback
+        lb.transaction = False
 
 #### Nodes
     import f5
