@@ -12,7 +12,7 @@ A library to make manipulating F5 loadbalancers easy
 
 ## Usage
 
-    python ./setup.py
+    python ./setup.py install
 
 ### Examples
 
