@@ -5,6 +5,7 @@ from copy import copy
 from f5.exceptions import UnsupportedF5Version
 import f5
 import f5.util
+import weakref
 
 ###########################################################################
 # Decorators
@@ -29,6 +30,7 @@ def restore_session_values(func):
 
     return wrapper
 
+
 # Enable recursive reading
 def recursivereader(func):
     @wraps(func)
@@ -44,6 +46,7 @@ def recursivereader(func):
 
     return wrapper
 
+
 # Set active folder to writable one if it is not
 def writer(func):
     @wraps(func)
@@ -55,6 +58,7 @@ def writer(func):
             return func(self, *args, **kwargs)
 
     return wrapper
+
 
 # Wrap a method inside a transaction
 def transaction(func):
@@ -79,6 +83,7 @@ def transaction(func):
         if our_transaction:
             self._submit_transaction()
 
+
 ###########################################################################
 # Loadbalancer
 ###########################################################################
@@ -100,6 +105,17 @@ class Lb(object):
         self._recursive_query     = self.recursive_query
         self._transaction         = self.transaction
         self._transaction_timeout = self.transaction_timeout
+
+        #### LB object caches ####
+        # Cache created objects for lookup and re-use.
+        # This is especially useful for objects that are shared by multiple other objects.
+        # e.g.: poolmembers that come from the same pool where we don't want to create a pool
+        # object seperately for every poolmember.
+        # N.B.: This is not a cache for data/objects fetched from the lb
+        self._nodes_cache = weakref.WeakValueDictionary()
+        self._pms_cache   = weakref.WeakValueDictionary()
+        self._pools_cache = weakref.WeakValueDictionary()
+        self._rules_cache = weakref.WeakValueDictionary()
 
     def __repr__(self):
         return "f5.Lb('%s')" % (self._host)
@@ -355,8 +371,10 @@ class Lb(object):
 
         for idx, addrportsq in enumerate(addrportsq2):
             for idx_inner, addrport in enumerate(addrportsq):
-                pm    = f5.Poolmember(addrport['address'], addrport['port'], pools[idx])
-                pm.lb = self
+                node = self._node_get_new_cached(addrport['address'])
+                pool = self._pool_get_new_cached(pools[idx])
+
+                pm = self._pm_get_new_cached(node.name, addrport['port'], pool.name)
 
                 if not minimal:
                     pm._address          = address2[idx][idx_inner]
@@ -371,6 +389,54 @@ class Lb(object):
 
         return pms
 
+    def _pm_get_new_cached(self, node_name, port, pool_name):
+        """Returns a poolmember object from cache, or creates basic a instance of it"""
+
+        key = '%s%s%s' % (node_name, port, pool_name)
+        if key in self._pms_cache:
+            return self._pms_cache[name]
+
+        node = self._node_get_new_cached(node_name)
+        pool = self._pool_get_new_cached(pool_name)
+
+        pm = f5.Poolmember(node=node, port=port, pool=pool, lb=self)
+        self._pms_cache[key] = pm
+
+        return pm
+
+    def _pool_get_new_cached(self, name):
+        """Returns a pool object from cache, or creates basic a instance of it"""
+
+        if name in self._pools_cache:
+            return self._pools_cache[name]
+
+        pool = f5.Pool(name=name, lb=self)
+        self._pools_cache[pool.name] = pool
+
+        return pool
+
+    def _node_get_new_cached(self, name):
+        """Returns a node object from cache, or creates basic a instance of it"""
+
+        if name in self._nodes_cache:
+            return self._nodes_cache[name]
+
+        node = f5.Node(name=name, lb=self)
+        self._nodes_cache[node.name] = node
+
+        return node
+
+    def _rule_get_new_cached(self, name):
+        """Returns a rule object from cache, or creates basic a instance of it"""
+
+        if name in self._rules_cache:
+            return self._rules_cache[name]
+
+        rule = f5.Rule(name=name, lb=self)
+        self._rules_cache[rule.name] = rule
+
+        return rule
+
     def _pools_get_objects(self, names, minimal=False):
         """Returns a list of pool objects from a list of pool names"""
         pools = []
@@ -381,7 +447,7 @@ class Lb(object):
             members      = self._pools_get_members(names)
 
         for idx,name in enumerate(names):
-            pool              = f5.Pool(name, lb=self)
+            pool = self._pool_get_new_cached(name)
 
             if not minimal:
                 pool._description = descriptions[idx]
@@ -411,7 +477,7 @@ class Lb(object):
             ratios            = self._nodes_get_ratio(names)
 
         for idx,name in enumerate(names):
-            node = f5.Node(name, lb=self)
+            node = self._node_get_new_cached(name)
 
             if not minimal:
                 node._address          = addresses[idx]
@@ -443,15 +509,14 @@ class Lb(object):
 
     def pool_get(self, name):
         """Returns a single F5 pool"""
-        pool = f5.Pool(name, lb=self)
+        pool = self._pool_get_new_cached(name)
         pool.refresh()
 
         return pool
 
-    def pm_get(self, node, port, pool):
+    def pm_get(self, node_name, port, pool_name):
         """Returns a single F5 poolmember"""
-
-        pm = f5.Poolmember(node, port, pool, lb=self)
+        pm = self._pm_get_new_cached(node_name, port, pool_name)
         pm.refresh()
 
         return pm
@@ -506,7 +571,7 @@ class Lb(object):
         return pm_copy
 
     def node_get(self, name):
-        node = f5.Node(name=name, lb=self)
+        node = self._node_get_new_cached(name)
         node.refresh()
 
         return node
@@ -522,7 +587,7 @@ class Lb(object):
         return self._nodes_get_objects(nodes, minimal)
 
     def rule_get(self, name):
-        rule = f5.Rule(name=name, lb=self)
+        rule = self._rule_get_new_cached(name)
         rule.refresh()
 
         return rule
