@@ -5,7 +5,6 @@ from copy import copy
 from f5.exceptions import UnsupportedF5Version
 import f5
 import f5.util
-import weakref
 
 ###########################################################################
 # Decorators
@@ -105,17 +104,6 @@ class Lb(object):
         self._recursive_query     = self.recursive_query
         self._transaction         = self.transaction
         self._transaction_timeout = self.transaction_timeout
-
-        #### LB object caches ####
-        # Cache created objects for lookup and re-use.
-        # This is especially useful for objects that are shared by multiple other objects.
-        # e.g.: poolmembers that come from the same pool where we don't want to create a pool
-        # object seperately for every poolmember.
-        # N.B.: This is not a cache for data/objects fetched from the lb
-        self._nodes_cache = weakref.WeakValueDictionary()
-        self._pms_cache   = weakref.WeakValueDictionary()
-        self._pools_cache = weakref.WeakValueDictionary()
-        self._rules_cache = weakref.WeakValueDictionary()
 
     def __repr__(self):
         return "f5.Lb('%s')" % (self._host)
@@ -272,322 +260,108 @@ class Lb(object):
         wsdl.set_recursive_query_state(state)
 
     #### Node methods ####
-    def _nodes_get(self):
-        wsdl = self._transport.LocalLB.NodeAddressV2
-        return wsdl.get_list()
+    def _node_cache_put(self, node):
+        self._node_cache[node.name] = node
 
-    def _nodes_get_address(self, names):
-        wsdl = self._transport.LocalLB.NodeAddressV2
-        return wsdl.get_address(names)
-
-    def _nodes_get_connection_limit(self, names):
-        wsdl = self._transport.LocalLB.NodeAddressV2
-        return wsdl.get_connection_limit(names)
-
-    def _nodes_get_description(self, names):
-        wsdl = self._transport.LocalLB.NodeAddressV2
-        return wsdl.get_description(names)
-
-    def _nodes_get_dynamic_ratio(self, names):
-        wsdl = self._transport.LocalLB.NodeAddressV2
-        return wsdl.get_dynamic_ratio(names)
-
-    def _nodes_get_rate_limit(self, names):
-        wsdl = self._transport.LocalLB.NodeAddressV2
-        return wsdl.get_rate_limit(names)
-
-    def _nodes_get_ratio(self, names):
-        wsdl = self._transport.LocalLB.NodeAddressV2
-        return wsdl.get_ratio(names)
+    def _node_cache_get(self, name):
+        if name in self._node_cache:
+            return self._node_cache[name]
 
     #### Pool methods ####
-    def _pools_get_description(self, names):
-        wsdl = self._transport.LocalLB.Pool
-        return wsdl.get_description(names)
+    def _pool_cache_put(self, pool):
+        self._pool_cache[pool.name] = pool
 
-    def _pools_get_lbmethod(self, names):
-        wsdl = self._transport.LocalLB.Pool
-        return wsdl.get_lb_method(names)
+    def _pool_cache_get(self, name):
+        if name in self._pool_cache:
+            return self._pool_cache[name]
 
-    def _pools_get_members(self, names):
-        wsdl = self._transport.LocalLB.Pool
-        return wsdl.get_member_v2(names)
-
-    def _pools_get_list(self):
-        wsdl = self._transport.LocalLB.Pool
-        return wsdl.get_list()
-
-    def _pools_get_member(self, pools):
-        wsdl = self._transport.LocalLB.Pool
-        return wsdl.get_member_v2(pools)
-
-    def _pools_get_member_address(self, pools, ipaddrsq2):
-        wsdl = self._transport.LocalLB.Pool
-        return wsdl.get_member_address(pools, ipaddrsq2)
-
-    def _pools_get_member_connection_limit(self, pools, ipaddrsq2):
-        wsdl = self._transport.LocalLB.Pool
-        return wsdl.get_member_connection_limit(pools, ipaddrsq2)
-
-    def _pools_get_member_description(self, pools, ipaddrsq2):
-        wsdl = self._transport.LocalLB.Pool
-        return wsdl.get_member_description(pools, ipaddrsq2)
-
-    def _pools_get_member_dynamic_ratio(self, pools, ipaddrsq2):
-        wsdl = self._transport.LocalLB.Pool
-        return wsdl.get_member_dynamic_ratio(pools, ipaddrsq2)
-
-    def _pools_get_member_priority(self, pools, ipaddrsq2):
-        wsdl = self._transport.LocalLB.Pool
-        return wsdl.get_member_priority(pools, ipaddrsq2)
-
-    def _pools_get_member_rate_limit(self, pools, ipaddrsq2):
-        wsdl = self._transport.LocalLB.Pool
-        return wsdl.get_member_rate_limit(pools, ipaddrsq2)
-
-    def _pools_get_member_ratio(self, pools, ipaddrsq2):
-        wsdl = self._transport.LocalLB.Pool
-        return wsdl.get_member_ratio(pools, ipaddrsq2)
-
-    def _pools_get_member_objects(self, pools, addrportsq2, minimal=False):
-        pms = []
-
-        # F5 skips empty lists in the sequence causing a mismatch in list indices,
-        # so we have to remove empty pools before  we can fetch other attributes.
-        f5.util.prune_f5_lists(addrportsq2, pools)
-
-        # Return an empty list if we pruned all pools (i.e. all pools were empty)
-        if not pools:
-            return []
-
-        if not minimal:
-            address2          = self._pools_get_member_address(pools, addrportsq2)
-            connection_limit2 = self._pools_get_member_connection_limit(pools, addrportsq2)
-            description2      = self._pools_get_member_description(pools, addrportsq2)
-            dynamic_ratio2    = self._pools_get_member_dynamic_ratio(pools, addrportsq2)
-            priority2         = self._pools_get_member_priority(pools, addrportsq2)
-            rate_limit2       = self._pools_get_member_rate_limit(pools, addrportsq2)
-            ratio2            = self._pools_get_member_ratio(pools, addrportsq2)
-
-        for idx, addrportsq in enumerate(addrportsq2):
-            for idx_inner, addrport in enumerate(addrportsq):
-                node = self._node_get_new_cached(addrport['address'])
-                pool = self._pool_get_new_cached(pools[idx])
-
-                pm = self._pm_get_new_cached(node.name, addrport['port'], pool.name)
-
-                if not minimal:
-                    pm._address          = address2[idx][idx_inner]
-                    pm._connection_limit = connection_limit2[idx][idx_inner]
-                    pm._description      = description2[idx][idx_inner]
-                    pm._dynamic_ratio    = dynamic_ratio2[idx][idx_inner]
-                    pm._priority         = priority2[idx][idx_inner]
-                    pm._rate_limit       = rate_limit2[idx][idx_inner]
-                    pm._ratio            = ratio2[idx][idx_inner]
-
-                pms.append(pm)
-
-        return pms
-
-    def _pm_get_new_cached(self, node_name, port, pool_name):
-        """Returns a poolmember object from cache, or creates basic a instance of it"""
-
+    def _pm_cache_get(self, node_name, port, pool_name):
         key = '%s%s%s' % (node_name, port, pool_name)
-        if key in self._pms_cache:
-            return self._pms_cache[name]
+        if key in self._pm_cache:
+            return self._pm_cache[key]
 
-        node = self._node_get_new_cached(node_name)
-        pool = self._pool_get_new_cached(pool_name)
+    def _pm_cache_put(self, pm):
+        key = '%s%s%s' % (pm.node.name, pm.port, pm.pool.name)
+        self._pm_cache[key] = pm
 
-        pm = f5.Poolmember(node=node, port=port, pool=pool, lb=self)
-        self._pms_cache[key] = pm
+    #### VirtualServer methods ####
+    def _vs_cache_put(self, vs):
+        self._vs_cache[vs.name] = vs
 
-        return pm
+    def _vs_cache_get(self, name):
+        if name in self._vs_cache:
+            return self._vs_cache[name]
 
-    def _pool_get_new_cached(self, name):
-        """Returns a pool object from cache, or creates basic a instance of it"""
+    #### Rule methods
+    def _rule_cache_put(self, rule):
+        self._rule_cache[rule.name] = rule
 
-        if name in self._pools_cache:
-            return self._pools_cache[name]
+    def _rule_cache_get(self, name):
+        if name in self._rule_cache:
+            return self._rule_cache[name]
 
-        pool = f5.Pool(name=name, lb=self)
-        self._pools_cache[pool.name] = pool
-
-        return pool
-
-    def _node_get_new_cached(self, name):
-        """Returns a node object from cache, or creates basic a instance of it"""
-
-        if name in self._nodes_cache:
-            return self._nodes_cache[name]
-
-        node = f5.Node(name=name, lb=self)
-        self._nodes_cache[node.name] = node
-
-        return node
-
-    def _rule_get_new_cached(self, name):
-        """Returns a rule object from cache, or creates basic a instance of it"""
-
-        if name in self._rules_cache:
-            return self._rules_cache[name]
-
-        rule = f5.Rule(name=name, lb=self)
-        self._rules_cache[rule.name] = rule
-
-        return rule
-
-    def _pools_get_objects(self, names, minimal=False):
-        """Returns a list of pool objects from a list of pool names"""
-        pools = []
-
-        if not minimal:
-            descriptions = self._pools_get_description(names)
-            lbmethods    = self._pools_get_lbmethod(names)
-            members      = self._pools_get_members(names)
-
-        for idx,name in enumerate(names):
-            pool = self._pool_get_new_cached(name)
-
-            if not minimal:
-                pool._description = descriptions[idx]
-                pool._lbmethod    = lbmethods[idx]
-                pool._members     = [
-                    f5.Poolmember(ap['address'], ap['port'], pool, lb=self) for ap in members[idx]
-                ]
-
-            pools.append(pool)
-
-        return pools
-
-    #### Node methods ####
-    def _nodes_get_objects(self, names, minimal=False):
-        """Returns a list of node objects from a list of node names"""
-        nodes = []
-
-        if not names:
-            return nodes
-
-        if not minimal:
-            addresses         = self._nodes_get_address(names)
-            connection_limits = self._nodes_get_connection_limit(names)
-            descriptions      = self._nodes_get_description(names)
-            dynamic_ratios    = self._nodes_get_dynamic_ratio(names)
-            rate_limits       = self._nodes_get_rate_limit(names)
-            ratios            = self._nodes_get_ratio(names)
-
-        for idx,name in enumerate(names):
-            node = self._node_get_new_cached(name)
-
-            if not minimal:
-                node._address          = addresses[idx]
-                node._connection_limit = connection_limits[idx]
-                node._description      = descriptions[idx]
-                node._dynamic_ratio    = dynamic_ratios[idx]
-                node._rate_limit       = rate_limits[idx]
-                node._ratio            = ratios[idx]
-
-            nodes.append(node)
-
-        return nodes
     ###########################################################################
     # PUBLIC API
     ###########################################################################
     def submit_transaction(self):
         self._submit_transaction()
     
-    @recursivereader
-    def pools_get(self, pattern=None, minimal=False):
-        pools = self._pools_get_list()
-
-        if pattern is not None:
-            if not isinstance(pattern, re._pattern_type):
-                pattern = re.compile(pattern)
-            pools = filter(lambda pool: pattern.match(pool), pools)
-
-        return self._pools_get_objects(pools, minimal)
-
     def pool_get(self, name):
         """Returns a single F5 pool"""
-        pool = self._pool_get_new_cached(name)
+        pool = f5.Pool.factory.get(name, self)
         pool.refresh()
 
         return pool
 
-    def pm_get(self, node_name, port, pool_name):
-        """Returns a single F5 poolmember"""
-        pm = self._pm_get_new_cached(node_name, port, pool_name)
+    @recursivereader
+    def pools_get(self, pattern=None, minimal=False):
+        """Returns a list of F5 Pools, takes optional pattern"""
+        return f5.Pool._get(self, pattern, minimal)
+
+    def pm_get(self, node, port, pool):
+        """Returns a single F5 PoolMember"""
+        pm = f5.PoolMember.factory.get(node, port, pool, self)
         pm.refresh()
 
         return pm
 
     @recursivereader
     def pms_get(self, pools=None, pattern=None, minimal=False):
-        """Returns a list of F5 poolmembers, takes optional list of pools and pattern"""
-
-        if pools is not None:
-            if isinstance(pools, list):
-                pools = [pool.name for pool in pools]
-            else:
-                pools = [pools]
-        else:
-            pools = self._pools_get_list()
-
-        addrportsq2 = self._pools_get_member(pools)
-
-        if pattern is not None:
-            if not isinstance(pattern, re._pattern_type):
-                pattern = re.compile(pattern)
-            for idx,addrportsq in enumerate(addrportsq2):
-                addrportsq2[idx] = filter(
-                        lambda ap: pattern.match('%s:%s' % (ap['address'], ap['port'])), addrportsq)
-
-        return self._pools_get_member_objects(pools, addrportsq2, minimal)
-
-    def pm_move(self, pm, pool):
-        """Moves an existing pm to another pool and returns a reference"""
-
-        pm_copy = copy(pm)
-        pm_copy._pool = pool
-        pm_copy.save()
-
-        # Delete the copy if we fail to delete ourself so we don't end up
-        # with 2 pm's
-        try:
-            pm.delete()
-        except:
-            pm_copy.delete()
-            raise
-
-        return pm_copy
-
-    def pm_copy(self, pm, pool):
-        """Copies an existing pm to another pool and returns a reference"""
-
-        pm_copy = copy(pm)
-        pm_copy._pool = pool
-        pm_copy.save()
-
-        return pm_copy
+        """Returns a list of F5 PoolMembers, takes optional list of pools and pattern"""
+        return f5.PoolMember._get(self, pools, pattern, minimal)
 
     def node_get(self, name):
-        node = self._node_get_new_cached(name)
+        """Returns a single F5 Node"""
+        node = f5.Node.factory.get(name, self)
         node.refresh()
 
         return node
 
     @recursivereader
     def nodes_get(self, pattern=None, minimal=False):
-        nodes = self._nodes_get()
-        if pattern is not None:
-            if not isinstance(pattern, re._pattern_type):
-                pattern = re.compile(pattern)
-            nodes = filter(lambda node: pattern.match(node), nodes)
-
-        return self._nodes_get_objects(nodes, minimal)
+        """Returns a list of F5 Nodes, takes optional list of pools and pattern"""
+        return f5.Node._get(self, pattern, minimal)
 
     def rule_get(self, name):
-        rule = self._rule_get_new_cached(name)
+        """Returns a single F5 Rule"""
+        rule = f5.Rule.factory.get(name, self)
         rule.refresh()
 
         return rule
+
+    @recursivereader
+    def rules_get(self, pattern=None, minimal=False):
+        """Returns a list of F5 Rules, takes optional pattern"""
+        return f5.Rule._get(self, pattern, minimal)
+
+    def vs_get(self, name):
+        """Returns a single F5 VirtualServer"""
+        vs = f5.VirtualServer.factory.get(name, self)
+        vs.refresh()
+
+        return vs
+
+    @recursivereader
+    def vss_get(self, pattern=None, minimal=False):
+        """Returns a list of F5 VirtualServers, takes optional pattern"""
+        return f5.VirtualServer._get(self, pattern, minimal)

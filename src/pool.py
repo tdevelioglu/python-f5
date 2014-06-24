@@ -1,6 +1,7 @@
 from bigsuds import ServerError
 import f5
 import f5.util
+import re
 
 class Pool(object):
     __version = 11
@@ -28,13 +29,15 @@ class Pool(object):
             'ratio_least_connection_node_address'
             ]
 
-    def __init__(self, name, description=None, lbmethod=None, members=None, lb=None):
+    def __init__(self, name, lb=None, description=None, lbmethod=None, members=None):
 
         if lb is not None and not isinstance(lb, f5.Lb):
             raise ValueError('lb must be of type lb, not %s' % (type(lb).__name__))
 
         if lbmethod is not None and lbmethod not in self.__lbmethods:
-            raise ValueError('%s is not a valid value for lbmethod, expecting: %s' % (lbmethod, self.__lbmethods))
+            raise ValueError(
+                    '%s is not a valid value for lbmethod, expecting: %s'
+                    % (lbmethod, self.__lbmethods))
 
         self._lb          = lb
         self._name        = name
@@ -45,11 +48,18 @@ class Pool(object):
         if lb:
             self._set_wsdl()
 
-    def _set_wsdl(self):
-            self.__wsdl = self._lb._transport.LocalLB.Pool
-
     def __repr__(self):
-        return "f5.pool('%s')" % (self._name)
+        return "f5.Pool('%s')" % (self._name)
+
+    ###########################################################################
+    # Private API
+    ###########################################################################
+    @staticmethod
+    def _get_wsdl(lb):
+        return lb._transport.LocalLB.Pool
+
+    def _set_wsdl(self):
+            self.__wsdl = self._get_wsdl(self._lb)
 
     @f5.util.lbwriter
     def _create(self):
@@ -85,7 +95,7 @@ class Pool(object):
     def _addrportsq_to_pms(self, addrportsq):
         pms = []
         for addrport in addrportsq:
-            pms.append(f5.Poolmember(addrport['address'], addrport['port'], self, lb=self._lb))
+            pms.append(f5.PoolMember(addrport['address'], addrport['port'], self, lb=self._lb))
 
         return pms
  
@@ -96,14 +106,71 @@ class Pool(object):
 
         return addrportsq
 
+    @classmethod
+    def _get_list(cls, lb):
+        return cls._get_wsdl(lb).get_list()
+
+    @classmethod
+    def _get_descriptions(cls, lb, names):
+        return cls._get_wsdl(lb).get_description(names)
+
+    @classmethod
+    def _get_lbmethods(cls, lb, names):
+        return cls._get_wsdl(lb).get_lb_method(names)
+
+    @classmethod
+    def _get_memberss(cls, lb, names):
+        return cls._get_wsdl(lb).get_member_v2(names)
+
+    @classmethod
+    def _get_objects(cls, lb, names, minimal=False):
+        """Returns a list of Pool objects from a list of pool names"""
+        objects = []
+
+        if not minimal:
+            descriptions = cls._get_descriptions(lb, names)
+            lbmethods    = cls._get_lbmethods(lb, names)
+            members      = cls._get_memberss(lb, names)
+
+        for idx,name in enumerate(names):
+            pool = cls.factory(name, lb)
+
+            if not minimal:
+                pool._description = descriptions[idx]
+                pool._lbmethod    = lbmethods[idx]
+                pool._members     = [
+                    f5.PoolMember.factory(ap['address'], ap['port'], pool, lb) for ap in members[idx]
+                ]
+
+            objects.append(pool)
+
+        return objects
+
+    @classmethod
+    def _get(cls, lb, pattern=None, minimal=False):
+        names = cls._get_list(lb)
+
+        if pattern is not None:
+            if not isinstance(pattern, re._pattern_type):
+                pattern = re.compile(pattern)
+            names = filter(lambda name: pattern.match(name), names)
+
+        return cls._get_objects(lb, names, minimal)
+
     ###########################################################################
     # Properties
     ###########################################################################
-
     #### name ####
     @property
     def name(self):
         return self._name
+
+    @name.setter
+    @f5.util.updatefactorycache
+    def name(self, value):
+        if self._lb:
+            raise AttributeError("set attribute name not allowed when linked to lb")
+        self._name = name
 
     #### lb ####
     @property
@@ -111,6 +178,7 @@ class Pool(object):
         return self._lb
 
     @lb.setter
+    @f5.util.updatefactorycache
     def lb(self, value):
         if value is not None and not isinstance(value, f5.Lb):
             raise ValueError('lb must be of type lb, not %s' % (type(value).__name__))
@@ -199,3 +267,4 @@ class Pool(object):
             if self._description is not None:
                 self.description = self._description
 
+Pool.factory = f5.util.CachedFactory(Pool)

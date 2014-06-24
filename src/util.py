@@ -1,8 +1,42 @@
 from bigsuds import ServerError
 import f5.lb
-import time
+import weakref
 
-# Looks at the first list for empty lists and removes elements in the same position from all lists including itself.
+# Abstract Factory class for generating cached F5 objects
+class CachedFactory(object):
+    def __init__(self, Klass):
+        self._Klass = Klass
+        self._cache = weakref.WeakValueDictionary()
+
+    def __repr__(self):
+        return 'CachedFactory(%s)' % self._Klass
+
+    def get(self, name, lb=None, *args, **kwargs):
+        key = name
+        if lb is not None:
+            key = lb.host + key
+
+        # Save some bytes
+        key = hash(key)
+
+        if key in self._cache:
+            return self._cache[key]
+        else:
+            obj = self._Klass(name, *args, lb=lb, **kwargs)
+
+            self._cache[key] = obj
+            return obj
+
+    def put(self, obj):
+        key = obj.name
+        if obj.lb is not None:
+            key = obj.lb.host + key
+
+        key = hash(key)
+        self._cache[key] = obj
+
+# Looks at the first list for empty lists and removes elements in the same position from all lists
+# including itself.
 def prune_f5_lists(list1, *lists):
     for list in lists:
         if len(list) != len(list1):
@@ -25,6 +59,17 @@ def prune_f5_lists(list1, *lists):
 # Decorators
 ###########################################################################
 from functools import wraps
+
+# Ensure class instance cache is updated on a key attribute change
+def updatefactorycache(func):
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        func_ret = func(self, *args, **kwargs)
+        self.factory.put(self)
+        return func_ret
+
+    return wrapper
+
 
 # Wrap a method inside a transaction (non-lb version)
 def lbtransaction(func):
@@ -55,6 +100,7 @@ def lbtransaction(func):
 
     return wrapper
 
+
 #### Throw an exception if there's no valid lb set ####
 def lbmethod(func):
     @wraps(func)
@@ -65,6 +111,7 @@ def lbmethod(func):
         return func(self, *args, **kwargs)
 
     return wrapper
+
 
 # Set active folder to writable one if it is not
 def lbwriter(func):
@@ -78,6 +125,7 @@ def lbwriter(func):
         return func(self, *args, **kwargs)
 
     return wrapper
+
 
 # Restore session attributes to their original values if they were changed
 def lbrestore_session_values(func):
@@ -96,4 +144,3 @@ def lbrestore_session_values(func):
         return func_ret
 
     return wrapper
-

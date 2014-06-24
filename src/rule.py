@@ -1,10 +1,12 @@
 from bigsuds import ServerError
 import f5
 import f5.util
+import re
 
 class Rule(object):
     __version = 11
     def __init__(self, name, definition=None, description=None, ignore_verification=None, lb=None):
+
         if lb is not None and not isinstance(lb, f5.Lb):
             raise ValueError('lb must be of type lb, not %s' % (type(lb).__name__))
 
@@ -17,11 +19,23 @@ class Rule(object):
         if lb:
             self._set_wsdl()
 
+
     def __repr__(self):
         return "f5.Rule('%s')" % (self._name)
 
+    ###########################################################################
+    # Private API
+    ###########################################################################
+    @staticmethod
+    def _get_wsdl(lb):
+        return lb._transport.LocalLB.Rule
+
     def _set_wsdl(self):
         self.__wsdl = self._lb._transport.LocalLB.Rule
+
+    @classmethod
+    def _get_list(cls, lb):
+        return cls._get_wsdl(lb).get_list()
 
     @f5.util.lbmethod
     def _query_rule(self):
@@ -56,6 +70,74 @@ class Rule(object):
     def _delete(self):
         self.__wsdl.delete([self._name])
 
+    @classmethod
+    def _query_rules(cls, lb, names):
+        return cls._get_wsdl(lb).query_rule(names)
+
+    @classmethod
+    def _get_descriptions(cls, lb, names):
+        return cls._get_wsdl(lb).get_description(names)
+
+    @classmethod
+    def _get_ignore_verifications(cls, lb, names):
+        return cls._get_wsdl(lb).get_ignore_verification(names)
+
+    @classmethod
+    def _get_objects(cls, lb, names, minimal=False):
+        """Returns a list of rule objects from a list of rule names"""
+        objects = []
+
+        if not names:
+            return objects
+
+        if not minimal:
+            definition          = [nd['rule_definition'] for nd in cls._query_rules(lb, names)]
+            description         = cls._get_descriptions(lb, names)
+            ignore_verification = cls._get_ignore_verifications(lb, names)
+
+        for idx, name in enumerate(names):
+            rule = cls.factory.get(name, lb)
+
+            if not minimal:
+                rule._definition          = definition[idx]
+                rule._description         = description[idx]
+                rule._ignore_verification = ignore_verification[idx]
+
+            objects.append(rule)
+
+        return objects
+
+    @classmethod
+    def _get(cls, lb, pattern=None, minimal=False):
+        rule_names = cls._get_list(lb)
+
+        if pattern is not None:
+            if not isinstance(pattern, re._pattern_type):
+                pattern = re.compile(pattern)
+                rule_names = filter(lambda rule_name: pattern.match(rule_name), rule_names)
+
+        return cls._get_objects(lb, rule_names, minimal)
+
+    @staticmethod
+    def _iv_to_bool(ignore_verification):
+            if ignore_verification == 'STATE_ENABLED':
+                return True
+            elif ignore_verification == 'STATE_DISABLED':
+                return False
+            else:
+                raise RuntimeError(
+                    'unknown ignore_verification_status %s received for Rule' %
+                    ignore_verification)
+
+    @staticmethod
+    def _bool_to_iv(_bool):
+        if _bool is True:
+            return 'STATE_ENABLED'
+        elif _bool is False:
+            return 'STATE_DISABLED'
+        else:
+            raise ValueError('ignore_verification must be True or False')
+
     ###########################################################################
     # Properties
     ###########################################################################
@@ -64,9 +146,10 @@ class Rule(object):
         return self._lb
 
     @lb.setter
+    @f5.util.updatefactorycache
     def lb(self, value):
         if value is not None and not isinstance(value, f5.Lb):
-            raise ValueError('lb must be of type lb, not %s' % (type(value).__name__))
+            raise ValueError('lb must be of type f5.Lb, not %s' % (type(value).__name__))
         self._lb = value
         self._set_wsdl()
 
@@ -76,6 +159,7 @@ class Rule(object):
         return self._name
 
     @name.setter
+    @f5.util.updatefactorycache
     def name(self,value):
         if self._lb:
             raise AttributeError("set attribute name not allowed when linked to lb")
@@ -112,28 +196,14 @@ class Rule(object):
     @property
     def ignore_verification(self):
         if self._lb:
-            ignore_verification = self._get_ignore_verification()
-            if ignore_verification == 'STATE_ENABLED':
-                self._ignore_verification = True
-            elif ignore_verification == 'STATE_DISABLED':
-                self._ignore_verification = False
-            else:
-                raise RuntimeError(
-                        'unknown ignore_verification_status %s received for Rule' % (ignore_verification))
+            self._ignore_verification = self._iv_to_bool(self._get_ignore_verification())
 
         return self._ignore_verification
 
     @ignore_verification.setter
     def ignore_verification(self, value):
-        if value == True:
-            ignore_verification = 'STATE_ENABLED'
-        elif value == False:
-            ignore_verification = 'STATE_DISABLED'
-        else:
-            raise ValueError('ignore_verification must either True or False')
-
         if self._lb:
-            self._set_ignore_verification(ignore_verification)
+            self._set_ignore_verification(self._bool_to_iv(value))
 
         self._ignore_verification = value
 
@@ -160,7 +230,7 @@ class Rule(object):
         if not self.exists():
             if self._rule_definition is None or self._name is None:
                 raise RuntimeError('name and definition must be set on create')
-            self.create()
+            self._create()
         elif self._definition is not None:
             self.definition = self._definition
 
@@ -178,3 +248,5 @@ class Rule(object):
     def delete(self):
         """Delete the rule from the lb"""
         self._delete_rule()
+
+Rule.factory = f5.util.CachedFactory(Rule)
