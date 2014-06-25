@@ -146,7 +146,7 @@ class VirtualServer(object):
                 vs._address      = destination[idx]['address']
                 vs._default_pool = f5.Pool.factory.get(default_pool[idx], lb)
                 vs._description  = description[idx]
-                vs._enabled      = cls._es_to_bool(enabled_state[idx])
+                vs._enabled      = cls._munge_enabled(enabled_state[idx])
                 vs._port         = destination[idx]['port']
                 vs._profiles     = profiles[idx]
                 vs._protocol     = cls._munge_protocol(protocol[idx])
@@ -170,19 +170,39 @@ class VirtualServer(object):
         return self.__wsdl.get_description([self._name])[0]
 
     @f5.util.lbmethod
+    def _set_description(self, value=None):
+        if value is None:
+            value = self._description
+        self.__wsdl.set_description([self._name], [value])
+
+    @f5.util.lbmethod
     def _get_default_pool_name(self):
         return self.__wsdl.get_default_pool_name([self._name])[0]
+
+    @f5.util.lbmethod
+    def _set_default_pool_name(self, value=None):
+        if value is None:
+            value = self._default_pool.name
+        self.__wsdl.set_default_pool_name([self._name], [value])
 
     @f5.util.lbmethod
     def _get_enabled_state(self):
         return self.__wsdl.get_enabled_state([self._name])[0]
 
     @f5.util.lbmethod
+    def _set_enabled_state(self, value=None):
+        if value is None:
+            value = self._unmunge_enabled(self._enabled)
+        self.__wsdl.set_enabled_state([self._name])
+
+    @f5.util.lbmethod
     def _get_destination(self):
         return self.__wsdl.get_destination_v2([self._name])[0]
 
     @f5.util.lbmethod
-    def _set_destination(self, value):
+    def _set_destination(self, value=None):
+        if value is None:
+            value = {'address': self._address, 'port': self._port}
         self.__wsdl.set_destination_v2([self._name], [value])
 
     @f5.util.lbmethod
@@ -194,12 +214,20 @@ class VirtualServer(object):
         return self.__wsdl.get_protocol([self._name])[0]
 
     @f5.util.lbmethod
-    def _set_protocol(self, value):
+    def _set_protocol(self, value=None):
+        if value is None:
+            value = self._unmunge_protocol(self._protocol)
         self.__wsdl.set_protocol([self._name], [value])
 
     @f5.util.lbmethod
     def _get_source_address(self):
         return self.__wsdl.get_source_address([self._name])[0]
+
+    @f5.util.lbmethod
+    def _set_source_address(self, value=None):
+        if value is None:
+            value = self._source_address
+        self.__wsdl.set_source_address([self._name], [value])
 
     @f5.util.lbmethod
     def _set_source_address(self, value):
@@ -210,12 +238,24 @@ class VirtualServer(object):
         return self.__wsdl.get_type([self._name])[0]
 
     @f5.util.lbmethod
-    def _set_type(self, value):
+    def _set_type(self, value=None):
+        self.__wsdl.set_type([self._name])
+
+    @f5.util.lbmethod
+    def _set_type(self, value=None):
+        if value is None:
+            value = self._unmunge_vstype(self._vstype)
         self.__wsdl.set_type([self._name], [value])
 
     @f5.util.lbmethod
     def _get_wildmask(self):
         return self.__wsdl.get_wildmask([self._name])[0]
+
+    @f5.util.lbmethod
+    def _set_wildmask(self, value=None):
+        if value is None:
+            value = self._wildmask
+        self.__wsdl.get_wildmask([self._name], [value])
 
     @f5.util.lbwriter
     def _set_description(self, value):
@@ -230,7 +270,7 @@ class VirtualServer(object):
         self.__wsdl._delete_virtual_server([self._name])
 
     @staticmethod
-    def _es_to_bool(enabled_state):
+    def _munge_enabled(enabled_state):
         if enabled_state == 'STATE_ENABLED':
             return True
         elif enabled_state == 'STATE_DISABLED':
@@ -239,7 +279,7 @@ class VirtualServer(object):
             raise RuntimeError("Unknown enabled_state received for VirtualServer: '%s'" % enabled_state)
 
     @staticmethod
-    def _bool_to_es(_bool):
+    def _unmunge_enabled(_bool):
         if _bool is True:
             return 'STATE_ENABLED'
         elif _bool is False:
@@ -361,14 +401,14 @@ class VirtualServer(object):
     def enabled(self):
         if self._lb:
             enabled_state = self._get_enabled_state()
-            self._enabled = self._es_to_bool(enabled_state)
+            self._enabled = self._munge_enabled(enabled_state)
 
         return self._enabled
 
     @enabled.setter
     def enabled(self, value):
         if self._lb:
-            self._set_enabled(self._bool_to_es(value))
+            self._set_enabled(self._unmunge_enabled(value))
 
         self._enabled = value
 
@@ -471,26 +511,59 @@ class VirtualServer(object):
 
         return True
 
+    def _create(self):
+        definition = {
+            'name'     : self._name,
+            'address'  : self._address,
+            'port'     : self._port,
+            'protocol' : self._unmunge_protocol(self._protocol)
+            }
+
+        # Not fully supported yet
+        # This requires more logic. 'profiles' and 'resources' should be broken down and
+        # constructed from other attributes.
+        profiles  = [{'profile_name': '/Common/tcp'}]
+        resources = [{'type': self._unmunge(self._vstype), 'default_pool_name': self._default_pool.name}]
+        self._create([definition], [self._wildmask], [resources], [profiles])
+
     @f5.util.lbtransaction
     def save(self):
-        """Save the virtualserver to the lb"""
+        """Save the virtualserver to the Lb"""
 
         if not self.exists():
-            if self._rule_definition is None or self._name is None:
-                raise RuntimeError('name and definition must be set on create')
+            args = [self._address, self._default_pool, self._port, self._protocol, self._wildmask,
+                self._vstype, self._profiles]
+            for arg in args:
+                if arg is None:
+                    raise RuntimeError('%s must be set on create' % args)
+
             self._create()
-        elif self._definition is not None:
-            self.definition = self._definition
+        else:
+            if self._address is not None or self._port is not None:
+                if self._address is None:
+                    self.address
+                if self._port is None:
+                    self.port
+                self._set_destination()
+            if self._protocol is not None:
+                 self._set_protocol()
+            if self._wildmask is not None:
+                 self._set_wildmask()
+            if self._default_pool is not None:
+                 self._set_default_pool()
+            if self._vstype is not None:
+                 self._set_type()
 
         if self._description is not None:
-            self.description = self._description
-        if self._ignore_verification is not None:
-            self.ignore_verification = self._ignore_verification
+            self._set_description()
+        if self._enabled is not None:
+            self._set_enabled_state()
+        if self._source is not None:
+            self._set_source_address()
 
     def refresh(self):
         """Update all attributes from the lb"""
         self.address
-        self.description
         self.default_pool
         self.description
         self.enabled
