@@ -177,10 +177,13 @@ class VirtualServer(object):
     def _get_enabled_state(self):
         return self.__wsdl.get_enabled_state([self._name])[0]
 
+    @f5.util.lbmethod
+    def _get_destination(self):
+        return self.__wsdl.get_destination_v2([self._name])[0]
 
     @f5.util.lbmethod
     def _set_destination(self, value):
-        self.__wsdl.get_destination_v2([self._name], [value])
+        self.__wsdl.set_destination_v2([self._name], [value])
 
     @f5.util.lbmethod
     def _get_profile(self):

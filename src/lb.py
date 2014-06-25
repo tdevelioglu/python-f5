@@ -383,7 +383,6 @@ class Lb(object):
 
         for pool in pools:
             for vs in vss:
-                print '%s : %s' % (pool, vs._default_pool.name)
                 if pool == vs._default_pool.name:
                     result[pool].append(vs)
 
