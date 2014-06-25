@@ -365,3 +365,26 @@ class Lb(object):
     def vss_get(self, pattern=None, minimal=False):
         """Returns a list of F5 VirtualServers, takes optional pattern"""
         return f5.VirtualServer._get(self, pattern, minimal)
+
+    @recursivereader
+    def pools_get_vs(self, pools=None, minimal=False):
+        """Returns VirtualServers associated with a list of Pools"""
+        if pools is None:
+            pools = f5.Pool._get_list(self)
+        else:
+            if isinstance(pools[0], f5.Pool):
+                pools = [pool.name for pool in pools]
+
+        result = {pool: [] for pool in pools}
+
+        vss = f5.VirtualServer._get(self, minimal=minimal)
+        if minimal is True:
+            vss = f5.VirtualServer._refresh_default_pool(self, vss)
+
+        for pool in pools:
+            for vs in vss:
+                print '%s : %s' % (pool, vs._default_pool.name)
+                if pool == vs._default_pool.name:
+                    result[pool].append(vs)
+
+        return result

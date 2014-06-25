@@ -133,7 +133,7 @@ class Pool(object):
             members      = cls._get_memberss(lb, names)
 
         for idx,name in enumerate(names):
-            pool = cls.factory(name, lb)
+            pool = cls.factory.get(name, lb)
 
             if not minimal:
                 pool._description = descriptions[idx]

@@ -143,9 +143,9 @@ class Node(object):
 
     @staticmethod
     def _bool_to_enabled_status(_bool):
-        if _bool == True:
+        if _bool is True:
             return 'STATE_ENABLED'
-        elif _bool == False:
+        elif _bool is False:
             return 'STATE_DISABLED'
         else:
             raise ValueError('enabled must be True or False')

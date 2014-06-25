@@ -18,7 +18,7 @@ class VirtualServer(object):
             'internal',
             ]
 
-    _protocols = [
+    __protocols = [
             'any',
             'ipv6',
             'routing',
@@ -92,12 +92,12 @@ class VirtualServer(object):
         return cls._get_wsdl(lb).get_description(names)
 
     @classmethod
-    def _get_enabled_states(cls, lb, names):
-        return cls._get_wsdl(lb).get_enabled_state(names)
+    def _get_destinations(cls, lb, names):
+        return cls._get_wsdl(lb).get_destination_v2(names)
 
     @classmethod
-    def _get_destinations(cls, lb, names):
-        return cls._get_wsdl(lb).get_destination(names)
+    def _get_enabled_states(cls, lb, names):
+        return cls._get_wsdl(lb).get_enabled_state(names)
 
     @classmethod
     def _get_profiles(cls, lb, names):
@@ -121,9 +121,10 @@ class VirtualServer(object):
 
     @classmethod
     def _get_objects(cls, lb, names, minimal=False):
-        """ Take a list of names and return VirtualServer"""
+        """ Takes a list of names and returns VirtualServers"""
         objects = []
 
+        # if names or attributes are empty
         if not names:
             return objects
 
@@ -157,6 +158,13 @@ class VirtualServer(object):
 
         return objects
 
+    @classmethod
+    def _refresh_default_pool(cls, lb, vss):
+        """Sets the default_pool on a list of VirtualServers with data from the lb"""
+        default_pool = cls._get_default_pool_names(lb, [vs.name for vs in vss])
+        for vs in vs:
+            vs._pool = f5.Pool.factory.get(default_pool[idx], lb)
+
     @f5.util.lbmethod
     def _get_description(self):
         return self.__wsdl.get_description([self._name])[0]
@@ -169,9 +177,6 @@ class VirtualServer(object):
     def _get_enabled_state(self):
         return self.__wsdl.get_enabled_state([self._name])[0]
 
-    @f5.util.lbmethod
-    def _get_destination(self):
-        return self.__wsdl.get_destination_v2([self._name])[0]
 
     @f5.util.lbmethod
     def _set_destination(self, value):
@@ -323,7 +328,7 @@ class VirtualServer(object):
     @property
     def default_pool(self):
         if self._lb:
-            self._default_pool = self._get_default_pool_name()
+            self._default_pool = f5.Pool.factory.get(self._get_default_pool_name(), self._lb)
         return self._default_pool
 
     @default_pool.setter
@@ -394,6 +399,10 @@ class VirtualServer(object):
 
     @protocol.setter
     def protocol(self, value):
+        if value not in self.__resource_types:
+            raise ValueError(
+                    "'%s' is not a valid value for protocol, expecting: %s"
+                    % (value, self.__resource_types))
         if self._lb:
             self._set_protocol(self._unmunge_protocol(value))
         self._protocol = value
