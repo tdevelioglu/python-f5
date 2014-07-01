@@ -122,9 +122,8 @@ class VirtualServer(object):
     @classmethod
     def _get_objects(cls, lb, names, minimal=False):
         """ Takes a list of names and returns VirtualServers"""
-        objects = []
 
-        # if names or attributes are empty
+        # if names is empty
         if not names:
             return objects
 
@@ -139,12 +138,12 @@ class VirtualServer(object):
             vstype        = cls._get_types(lb, names)
             wildmask      = cls._get_wildmasks(lb, names)
 
-        for idx,name in enumerate(names):
-            vs = cls.factory.get(name, lb)
+        virtualservers = cls.factory.create(names, lb)
+        for idx,vs in enumerate(virtualservers):
 
             if not minimal:
                 vs._address      = destination[idx]['address']
-                vs._default_pool = f5.Pool.factory.get(default_pool[idx], lb)
+                vs._default_pool = f5.Pool.factory.create(default_pool[idx], lb)
                 vs._description  = description[idx]
                 vs._enabled      = cls._munge_enabled(enabled_state[idx])
                 vs._port         = destination[idx]['port']
@@ -154,16 +153,14 @@ class VirtualServer(object):
                 vs._vstype       = cls._munge_vstype(vstype[idx])
                 vs._wildmask     = wildmask[idx]
 
-            objects.append(vs)
-
-        return objects
+        return virtualservers
 
     @classmethod
     def _refresh_default_pool(cls, lb, vss):
         """Sets the default_pool on a list of VirtualServers with data from the lb"""
         default_pool = cls._get_default_pool_names(lb, [vs.name for vs in vss])
         for vs in vs:
-            vs._pool = f5.Pool.factory.get(default_pool[idx], lb)
+            vs._pool = f5.Pool.factory.create(default_pool[idx], lb)
 
     @f5.util.lbmethod
     def _get_description(self):
@@ -371,13 +368,13 @@ class VirtualServer(object):
     @property
     def default_pool(self):
         if self._lb:
-            self._default_pool = f5.Pool.factory.get(self._get_default_pool_name(), self._lb)
+            self._default_pool = f5.Pool.factory.create(self._get_default_pool_name(), self._lb)
         return self._default_pool
 
     @default_pool.setter
     def default_pool(self, value):
         if isinstance(value, str):
-            value = f5.Pool.factory.get(value, self._lb)
+            value = f5.Pool.factory.create(value, self._lb)
 
         if self._lb:
             self._set_default_pool_name(value.name)

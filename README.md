@@ -136,6 +136,27 @@ A library to make manipulating F5 loadbalancers easy
     # We can re-fetch all attributes from the lb easily
     node.refresh()
 
+    # Or work with a list for convenience:
+    nodelist = f5.NodeList(lb, pattern='.*webapp.dc02.*')
+
+    # Update attributes on all the nodes in the list
+    nodelist.connection_limit = '9001'
+
+    # or asynchronous (and transactional):
+    nodelist._set_nodeattr('_connection_limit', 9001)
+    nodelist._set_nodeattr('_description', 'It's over 9000!')
+    nodelist.sync()
+
+    # to dictionary
+    nodelist.dictionary
+
+    # Or from local copies (no requests to the lb, so faster)
+    nodelist._dictionary
+
+    # Load from dictionary:
+    nodelist.dictionary = dictionary
+
+
 #### Pools
     import f5
     lb = f5.Lb('f5.example.com', 'admin', 'admin')

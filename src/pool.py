@@ -125,7 +125,7 @@ class Pool(object):
     @classmethod
     def _get_objects(cls, lb, names, minimal=False):
         """Returns a list of Pool objects from a list of pool names"""
-        objects = []
+        pools = cls.factory.create([names], lb)
 
         if not minimal:
             descriptions = cls._get_descriptions(lb, names)
@@ -133,18 +133,15 @@ class Pool(object):
             members      = cls._get_memberss(lb, names)
 
         for idx,name in enumerate(names):
-            pool = cls.factory.get(name, lb)
+            pool = pools[idx]
 
             if not minimal:
                 pool._description = descriptions[idx]
                 pool._lbmethod    = lbmethods[idx]
-                pool._members     = [
-                    f5.PoolMember.factory(ap['address'], ap['port'], pool, lb) for ap in members[idx]
-                ]
+                pool._members = f5.PoolMember.factory.create(
+                        [[ap['address'], ap['port'], pool] for ap in members[idx]], lb)
 
-            objects.append(pool)
-
-        return objects
+        return pools
 
     @classmethod
     def _get(cls, lb, pattern=None, minimal=False):

@@ -11,21 +11,26 @@ class CachedFactory(object):
     def __repr__(self):
         return 'CachedFactory(%s)' % self._Klass
 
-    def get(self, name, lb=None, *args, **kwargs):
-        key = name
-        if lb is not None:
-            key = lb.host + key
+    def create(self, names, lb=None, *args, **kwargs):
+        objects = []
 
-        # Save some bytes
-        key = hash(key)
+        for name in names:
+            key = name
+            if lb is not None:
+                key = lb.host + key
 
-        if key in self._cache:
-            return self._cache[key]
-        else:
-            obj = self._Klass(name, *args, lb=lb, **kwargs)
+            # Save some bytes
+            key = hash(key)
 
-            self._cache[key] = obj
-            return obj
+            if key in self._cache:
+                objects.append(self._cache[key])
+            else:
+                obj = self._Klass(name, lb, *args, **kwargs)
+   
+                self._cache[key] = obj
+                objects.append(obj)
+
+        return objects
 
     def put(self, obj):
         key = obj.name
@@ -59,6 +64,18 @@ def prune_f5_lists(list1, *lists):
 # Decorators
 ###########################################################################
 from functools import wraps
+
+def multisetter(func):
+    @wraps(func)
+    @lbwriter2
+    def wrapper(self, values):
+        if not isinstance(values, list):
+            values=[values] * len(self)
+        else:
+            if len(values) is not len(self):
+                raise ValueError('value must be of same length as list')
+        func(self, values)
+    return wrapper
 
 # Ensure class instance cache is updated on a key attribute change
 def updatefactorycache(func):
@@ -100,6 +117,26 @@ def lbtransaction(func):
 
     return wrapper
 
+# Restore session attributes to their original values if they were changed (non-lb version)
+def restore_session_values(func):
+    def wrapper(self, *args, **kwargs):
+        original_folder          = self.lb._active_folder
+        original_recursive_query = self.lb._recursive_query
+
+        try:
+            func_ret = func(self, *args, **kwargs)
+        except:
+            raise
+        finally:
+            if self.lb._active_folder != original_folder:
+                self.lb.active_folder = original_folder
+    
+            if self.lb._recursive_query != original_recursive_query:
+                self.lb.recursive_query = original_recursive_query
+
+        return func_ret
+
+    return wrapper
 
 #### Throw an exception if there's no valid lb set ####
 def lbmethod(func):
@@ -126,6 +163,16 @@ def lbwriter(func):
 
     return wrapper
 
+def lbwriter2(func):
+    @wraps(func)
+    @lbrestore_session_values
+    def wrapper(self, *args, **kwargs):
+        if self.lb._active_folder == '/':
+            self.lb.active_folder = '/Common'
+
+        return func(self, *args, **kwargs)
+
+    return wrapper
 
 # Restore session attributes to their original values if they were changed
 def lbrestore_session_values(func):

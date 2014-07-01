@@ -4,22 +4,25 @@ import f5.util
 import re
 
 class CachedFactory(f5.util.CachedFactory):
-    def get(self, node, port, pool, lb=None, *args, **kwargs):
+    def create(self, nodeportpools, lb=None, *args, **kwargs):
+        objects = []
 
-        key = node.name + str(port) + pool.name
-        if lb is not None:
-            key = lb.host + key
-
-        # Save some bytes
-        key = hash(key)
-
-        if key in self._cache:
-            return self._cache[key]
-        else:
-            obj = self._Klass(node, port, pool, *args, lb=lb, **kwargs)
-
-            self._cache[key] = obj
-            return obj
+        for nps in nodeportpools:
+            key = nps[0].name + str(nps[1]) + nps[2].name
+            if lb is not None:
+                key = lb.host + key
+    
+            # Save some bytes
+            key = hash(key)
+    
+            if key in self._cache:
+                return self._cache[key]
+            else:
+                obj = self._Klass(nps[0], nps[1], nps[2], *args, lb=lb, **kwargs)
+    
+                self._cache[key] = obj
+                objects.append(obj)
+        return objects
 
     def put(self, obj):
         key = obj.node.name + str(obj.port) + obj.pool.name
@@ -180,7 +183,6 @@ class PoolMember(object):
 
     @classmethod
     def _get_objects(cls, lb, pools, addrportsq2, minimal=False):
-        objects = []
 
         # F5 skips empty lists in the sequence causing a mismatch in list indices,
         # so we have to remove empty pools before  we can fetch other attributes.
@@ -190,6 +192,7 @@ class PoolMember(object):
         if not pools:
             return []
 
+        pools = f5.Pool.factory.create(pools, lb)
         if not minimal:
             address2          = cls._get_addresses(lb, pools, addrportsq2)
             connection_limit2 = cls._get_connection_limits(lb, pools, addrportsq2)
@@ -200,12 +203,12 @@ class PoolMember(object):
             ratio2            = cls._get_ratios(lb, pools, addrportsq2)
 
         for idx, addrportsq in enumerate(addrportsq2):
-            for idx_inner, addrport in enumerate(addrportsq):
-                node = f5.Node.factory.get(addrport['address'], lb)
-                pool = f5.Pool.factory.get(pools[idx], lb)
+            nodes = Node.factory.create([addrport['address'] for addrport in addrportsq], lb)
+            poolmembers = cls.factory.create(
+                    [[nodes[_idx], addrport['port'], pools[_idx]]
+                        for _idx,addrport in enumerate(addrportsq)], lb)
 
-                pm = cls.factory.get(node, addrport['port'], pool, lb)
-
+            for idx_inner, pm in enumerate(poolmembers):
                 if not minimal:
                     pm._address          = address2[idx][idx_inner]
                     pm._connection_limit = connection_limit2[idx][idx_inner]
@@ -215,9 +218,7 @@ class PoolMember(object):
                     pm._rate_limit       = rate_limit2[idx][idx_inner]
                     pm._ratio            = ratio2[idx][idx_inner]
 
-                objects.append(pm)
-
-        return objects
+        return poolmembers
 
     @classmethod
     def _get(cls, lb, pools=None, pattern=None, minimal=False):

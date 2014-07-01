@@ -5,7 +5,7 @@ import re
 
 class Rule(object):
     __version = 11
-    def __init__(self, name, definition=None, description=None, ignore_verification=None, lb=None):
+    def __init__(self, name, lb=None, definition=None, description=None, ignore_verification=None):
 
         if lb is not None and not isinstance(lb, f5.Lb):
             raise ValueError('lb must be of type lb, not %s' % (type(lb).__name__))
@@ -95,17 +95,14 @@ class Rule(object):
             description         = cls._get_descriptions(lb, names)
             ignore_verification = cls._get_ignore_verifications(lb, names)
 
-        for idx, name in enumerate(names):
-            rule = cls.factory.get(name, lb)
-
+        rules = cls.factory.create(names, lb)
+        for idx, rule in enumerate(rules):
             if not minimal:
                 rule._definition          = definition[idx]
                 rule._description         = description[idx]
                 rule._ignore_verification = ignore_verification[idx]
 
-            objects.append(rule)
-
-        return objects
+        return rules
 
     @classmethod
     def _get(cls, lb, pattern=None, minimal=False):

@@ -6,6 +6,11 @@ from f5.exceptions import UnsupportedF5Version
 import f5
 import f5.util
 
+# 'http://pingfive.typepad.com/blog/2010/04/deep-getattr-python-function.html'
+def deepgetattr(obj, attr):
+    """Recurses through an attribute chain to get the ultimate value."""
+    return reduce(getattr, attr.split('.'), obj)
+
 ###########################################################################
 # Decorators
 ###########################################################################
@@ -13,6 +18,7 @@ from functools import wraps
 
 # Restore session attributes to their original values if they were changed
 def restore_session_values(func):
+    @wraps(func)
     def wrapper(self, *args, **kwargs):
         original_folder          = self._active_folder
         original_recursive_query = self._recursive_query
@@ -46,43 +52,6 @@ def recursivereader(func):
     return wrapper
 
 
-# Set active folder to writable one if it is not
-def writer(func):
-    @wraps(func)
-    @restore_session_values
-    def wrapper(self, *args, **kwargs):
-        if self._active_folder == '/':
-            self.active_folder = '/Common'
-
-            return func(self, *args, **kwargs)
-
-    return wrapper
-
-
-# Wrap a method inside a transaction
-def transaction(func):
-    @wraps(func)
-    def wrapper(self, *args, **kwargs):
-        our_transaction = not self.transaction
-
-        if our_transaction:
-            # Start a transaction
-            self.transaction = True
-
-        try:
-            func_ret = func(self, *args, **kwargs)
-        except:
-            # try to roll back
-            try:
-                if our_transaction:
-                    self.transaction = False
-            except:
-                pass
-
-        if our_transaction:
-            self._submit_transaction()
-
-
 ###########################################################################
 # Loadbalancer
 ###########################################################################
@@ -107,6 +76,10 @@ class Lb(object):
 
     def __repr__(self):
         return "f5.Lb('%s')" % (self._host)
+
+    # call a service on the soap api
+    def _call(self, call, *args, **kwargs):
+        return deepgetattr(self._transport, call)(*args, **kwargs)
 
     ###########################################################################
     # Properties
@@ -188,7 +161,6 @@ class Lb(object):
     ###########################################################################
     # INTERNAL API
     ###########################################################################
-
     #### Session methods ####
     def _ensure_transaction(self):
         wsdl = self._transport.System.Session
@@ -308,7 +280,7 @@ class Lb(object):
     
     def pool_get(self, name):
         """Returns a single F5 pool"""
-        pool = f5.Pool.factory.get(name, self)
+        pool = f5.Pool.factory.create([name], self)[0]
         pool.refresh()
 
         return pool
@@ -320,7 +292,7 @@ class Lb(object):
 
     def pm_get(self, node, port, pool):
         """Returns a single F5 PoolMember"""
-        pm = f5.PoolMember.factory.get(node, port, pool, self)
+        pm = f5.PoolMember.factory.create([node, port, pool], self)[0]
         pm.refresh()
 
         return pm
@@ -332,7 +304,7 @@ class Lb(object):
 
     def node_get(self, name):
         """Returns a single F5 Node"""
-        node = f5.Node.factory.get(name, self)
+        node = f5.Node.factory.create([name], self)[0]
         node.refresh()
 
         return node
@@ -344,7 +316,7 @@ class Lb(object):
 
     def rule_get(self, name):
         """Returns a single F5 Rule"""
-        rule = f5.Rule.factory.get(name, self)
+        rule = f5.Rule.factory.create([name], self)[0]
         rule.refresh()
 
         return rule
@@ -356,7 +328,7 @@ class Lb(object):
 
     def vs_get(self, name):
         """Returns a single F5 VirtualServer"""
-        vs = f5.VirtualServer.factory.get(name, self)
+        vs = f5.VirtualServer.factory.create([name], self)[0]
         vs.refresh()
 
         return vs
