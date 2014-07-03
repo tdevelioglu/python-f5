@@ -359,7 +359,7 @@ class NodeList(list):
             self.connection_limit = self._get_nodeattr('_connection_limit')
 
         self.description   = self._get_nodeattr('_description')
-        self.dynamic_ratio = self._get_nodeattr('_dynamic_Ratio')
+        self.dynamic_ratio = self._get_nodeattr('_dynamic_ratio')
         self.enabled       = bool_enabled(self._get_nodeattr('_enabled'))
         self.rate_limit    = self._get_nodeattr('_rate_limit')
         self.ratio         = self._get_nodeattr('_ratio')
