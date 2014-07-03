@@ -279,7 +279,7 @@ class Node(object):
     ###########################################################################
     def exists(self):
         try:
-            self._get_address()
+            self._lbcall('get_address', [self._name])
         except ServerError as e:
             if 'was not found' in e.message:
                 return False
@@ -296,7 +296,7 @@ class Node(object):
         if not self.exists():
             if self._address is None or self._connection_limit is None:
                 raise RuntimeError('address and connection_limit must be set on create')
-            self._create()
+            self._lbcall('create', [self._name], [self._address], [self._connection_limit])
         elif self._connection_limit is not None:
             self.connection_limit = self._connection_limit
 
