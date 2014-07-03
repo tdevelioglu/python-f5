@@ -15,7 +15,7 @@ class CachedFactory(object):
         objects = []
 
         for name in names:
-            key = name
+            key = str(name)
             if lb is not None:
                 key = lb.host + key
 

@@ -51,6 +51,9 @@ class Pool(object):
     def __repr__(self):
         return "f5.Pool('%s')" % (self._name)
 
+    def __str__(self):
+        return self._name
+
     ###########################################################################
     # Private API
     ###########################################################################
@@ -88,9 +91,10 @@ class Pool(object):
     def _set_lb_method(self, value):
         self.__wsdl.set_lb_method([self._name], [value])
 
+    # Yes, this keeps adding for now.
     @f5.util.lbwriter
-    def _set_members(self, value):
-        self.__wsdl.set_member_v2([self._name], [value])
+    def _add_member(self, value):
+        self.__wsdl.add_member_v2([self._name], [value])
 
     def _addrportsq_to_pms(self, addrportsq):
         pms = []
@@ -125,7 +129,7 @@ class Pool(object):
     @classmethod
     def _get_objects(cls, lb, names, minimal=False):
         """Returns a list of Pool objects from a list of pool names"""
-        pools = cls.factory.create([names], lb)
+        pools = cls.factory.create(names, lb)
 
         if not minimal:
             descriptions = cls._get_descriptions(lb, names)
@@ -138,8 +142,8 @@ class Pool(object):
             if not minimal:
                 pool._description = descriptions[idx]
                 pool._lbmethod    = lbmethods[idx]
-                pool._members = f5.PoolMember.factory.create(
-                        [[ap['address'], ap['port'], pool] for ap in members[idx]], lb)
+                pool._members     = f5.PoolMember._get_objects(lb, [pool], [members[idx]],
+                                        minimal=minimal)
 
         return pools
 
@@ -228,7 +232,7 @@ class Pool(object):
     @members.setter
     def members(self, value):
         if self._lb:
-            self._set_members(self._pms_to_addrportsq(value))
+            self._add_member(self._pms_to_addrportsq(value))
 
         self._members = value
 

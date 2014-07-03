@@ -16,7 +16,7 @@ class CachedFactory(f5.util.CachedFactory):
             key = hash(key)
     
             if key in self._cache:
-                return self._cache[key]
+                objects.append(self._cache[key])
             else:
                 obj = self._Klass(nps[0], nps[1], nps[2], *args, lb=lb, **kwargs)
     
@@ -203,9 +203,9 @@ class PoolMember(object):
             ratio2            = cls._get_ratios(lb, pools, addrportsq2)
 
         for idx, addrportsq in enumerate(addrportsq2):
-            nodes = Node.factory.create([addrport['address'] for addrport in addrportsq], lb)
+            nodes = f5.Node.factory.create([addrport['address'] for addrport in addrportsq], lb)
             poolmembers = cls.factory.create(
-                    [[nodes[_idx], addrport['port'], pools[_idx]]
+                    [[nodes[_idx], addrport['port'], pools[idx]]
                         for _idx,addrport in enumerate(addrportsq)], lb)
 
             for idx_inner, pm in enumerate(poolmembers):
