@@ -107,6 +107,13 @@ class Lb(object):
         self._set_active_folder(value)
         self._active_folder =  value
 
+    #### failover_state
+    @property
+    def failover_state(self):
+        # Truncate value to just the state
+        self._failover_state = self._call('System.Failover.get_failover_state')[15:]
+        return self._failover_state
+
     #### recursive_query ####
     @property
     def recursive_query(self):
@@ -230,47 +237,6 @@ class Lb(object):
     def _set_recursive_query_state(self, state):
         wsdl = self._transport.System.Session
         wsdl.set_recursive_query_state(state)
-
-    #### Node methods ####
-    def _node_cache_put(self, node):
-        self._node_cache[node.name] = node
-
-    def _node_cache_get(self, name):
-        if name in self._node_cache:
-            return self._node_cache[name]
-
-    #### Pool methods ####
-    def _pool_cache_put(self, pool):
-        self._pool_cache[pool.name] = pool
-
-    def _pool_cache_get(self, name):
-        if name in self._pool_cache:
-            return self._pool_cache[name]
-
-    def _pm_cache_get(self, node_name, port, pool_name):
-        key = '%s%s%s' % (node_name, port, pool_name)
-        if key in self._pm_cache:
-            return self._pm_cache[key]
-
-    def _pm_cache_put(self, pm):
-        key = '%s%s%s' % (pm.node.name, pm.port, pm.pool.name)
-        self._pm_cache[key] = pm
-
-    #### VirtualServer methods ####
-    def _vs_cache_put(self, vs):
-        self._vs_cache[vs.name] = vs
-
-    def _vs_cache_get(self, name):
-        if name in self._vs_cache:
-            return self._vs_cache[name]
-
-    #### Rule methods
-    def _rule_cache_put(self, rule):
-        self._rule_cache[rule.name] = rule
-
-    def _rule_cache_get(self, name):
-        if name in self._rule_cache:
-            return self._rule_cache[name]
 
     ###########################################################################
     # PUBLIC API
