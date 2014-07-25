@@ -289,6 +289,10 @@ class VirtualServer(object):
     @classmethod
     def _get(cls, lb, pattern=None, minimal=False):
         names = cls._get_list(lb)
+
+        if not names:
+            return []
+
         if pattern is not None:
             if not isinstance(pattern, re._pattern_type):
                 pattern = re.compile(pattern)

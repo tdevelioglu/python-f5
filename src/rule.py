@@ -106,14 +106,17 @@ class Rule(object):
 
     @classmethod
     def _get(cls, lb, pattern=None, minimal=False):
-        rule_names = cls._get_list(lb)
+        names = cls._get_list(lb)
+
+        if not names:
+            return []
 
         if pattern is not None:
             if not isinstance(pattern, re._pattern_type):
                 pattern = re.compile(pattern)
-                rule_names = filter(lambda rule_name: pattern.match(rule_name), rule_names)
+                names = filter(lambda rule_name: pattern.match(rule_name), names)
 
-        return cls._get_objects(lb, rule_names, minimal)
+        return cls._get_objects(lb, names, minimal)
 
     @staticmethod
     def _iv_to_bool(ignore_verification):
