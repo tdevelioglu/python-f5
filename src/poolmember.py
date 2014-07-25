@@ -226,11 +226,21 @@ class PoolMember(object):
             if isinstance(pools, list):
                 pools = [pool.name for pool in pools]
             else:
-                pools = [pools]
+                if isinstance(pools, str):
+                    pools = [pools]
+                else:
+                    pools = [pools.name]
         else:
             pools = f5.Pool._get_list(lb)
 
+        # no pools no glory
+        if not pools:
+            return []
+
         addrportsq2 = cls._get_list(lb, pools)
+        
+        if not addrportsq2:
+            return []
 
         if pattern is not None:
             if not isinstance(pattern, re._pattern_type):
