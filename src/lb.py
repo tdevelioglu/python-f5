@@ -5,6 +5,7 @@ from copy import copy
 from f5.exceptions import UnsupportedF5Version
 import f5
 import f5.util
+from functools import reduce
 
 # 'http://pingfive.typepad.com/blog/2010/04/deep-getattr-python-function.html'
 def deepgetattr(obj, attr):
@@ -321,7 +322,7 @@ class Lb(object):
 
         for pool in pools:
             for vs in vss:
-                print vs._default_pool
+                print(vs._default_pool)
                 if pool == vs._default_pool.name:
                     result[pool].append(vs)
 

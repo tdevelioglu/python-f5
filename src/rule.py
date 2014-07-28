@@ -114,7 +114,7 @@ class Rule(object):
         if pattern is not None:
             if not isinstance(pattern, re._pattern_type):
                 pattern = re.compile(pattern)
-                names = filter(lambda rule_name: pattern.match(rule_name), names)
+                names = [rule_name for rule_name in names if pattern.match(rule_name)]
 
         return cls._get_objects(lb, names, minimal)
 

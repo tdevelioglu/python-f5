@@ -274,7 +274,7 @@ class Node(object):
         if pattern is not None:
             if not isinstance(pattern, re._pattern_type):
                 pattern = re.compile(pattern)
-            names = filter(lambda name: pattern.match(name), names)
+            names = [name for name in names if pattern.match(name)]
 
         return cls._get_objects(lb, names, minimal)
 

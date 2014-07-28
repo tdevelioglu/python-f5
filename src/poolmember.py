@@ -246,8 +246,7 @@ class PoolMember(object):
             if not isinstance(pattern, re._pattern_type):
                 pattern = re.compile(pattern)
             for idx,addrportsq in enumerate(addrportsq2):
-                addrportsq2[idx] = filter(
-                        lambda ap: pattern.match('%s:%s' % (ap['address'], ap['port'])), addrportsq)
+                addrportsq2[idx] = [ap for ap in addrportsq if pattern.match('%s:%s' % (ap['address'], ap['port']))]
 
         return cls._get_objects(lb, pools, addrportsq2, minimal)
 
