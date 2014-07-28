@@ -4,10 +4,11 @@ A library to make manipulating F5 loadbalancers easy
 ## Overview
 
 - Supports F5 BIG-IP V11
-- Create/modify nodes, pools and poolmembers
+- Manage nodes, pools and poolmembers, irules and virtualservers
 
 ## Requires
 
+- python 2.7+ / Python 3+
 - bigsuds (https://devcentral.f5.com/d/bigsuds-python-icontrol-library)
 
 ## Usage
