@@ -3,6 +3,25 @@ import f5
 import f5.util
 import re
 
+def enabled_bool(enabled_statuses):
+    """Switch from enabled_status to bool"""
+    bools = []
+    for es in enabled_statuses:
+        if es == 'ENABLED_STATUS_ENABLED':
+           bools.append(True)
+        elif es == 'ENABLED_STATUS_DISABLED_BY_PARENT':
+            bools.append(True)
+        elif es == 'ENABLED_STATUS_DISABLED':
+            bools.append(False)
+
+    return bools
+
+
+def bool_enabled(bools):
+    """Switch from bool to enabled_status"""
+    return ['STATE_ENABLED' if b else 'STATE_DISABLED' for b in bools]
+
+
 class CachedFactory(f5.util.CachedFactory):
     def create(self, nodeportpools, lb=None, *args, **kwargs):
         objects = []
@@ -11,17 +30,18 @@ class CachedFactory(f5.util.CachedFactory):
             key = nps[0].name + str(nps[1]) + nps[2].name
             if lb is not None:
                 key = lb.host + key
-    
+
             # Save some bytes
             key = hash(key)
-    
+
             if key in self._cache:
                 objects.append(self._cache[key])
             else:
                 obj = self._Klass(nps[0], nps[1], nps[2], *args, lb=lb, **kwargs)
-    
+
                 self._cache[key] = obj
                 objects.append(obj)
+
         return objects
 
     def put(self, obj):
@@ -170,6 +190,10 @@ class PoolMember(object):
         return cls._get_wsdl(lb).get_member_dynamic_ratio(pools, ipaddrsq2)
 
     @classmethod
+    def _get_object_statuses(cls, lb, pools, ipaddrsq2):
+        return cls._get_wsdl(lb).get_member_object_status(pools, ipaddrsq2)
+
+    @classmethod
     def _get_priorities(cls, lb, pools, ipaddrsq2):
         return cls._get_wsdl(lb).get_member_priority(pools, ipaddrsq2)
 
@@ -194,6 +218,10 @@ class PoolMember(object):
 
         pools = f5.Pool.factory.create(pools, lb)
         if not minimal:
+            enabled2 = []
+            for oslist in cls._get_object_statuses(lb, pools, addrportsq2):
+                enabled2.append(enabled_bool([os['enabled_status'] for os in oslist]))
+
             address2          = cls._get_addresses(lb, pools, addrportsq2)
             connection_limit2 = cls._get_connection_limits(lb, pools, addrportsq2)
             description2      = cls._get_descriptions(lb, pools, addrportsq2)
@@ -202,21 +230,25 @@ class PoolMember(object):
             rate_limit2       = cls._get_rate_limits(lb, pools, addrportsq2)
             ratio2            = cls._get_ratios(lb, pools, addrportsq2)
 
+        poolmembers  = []
         for idx, addrportsq in enumerate(addrportsq2):
             nodes = f5.Node.factory.create([addrport['address'] for addrport in addrportsq], lb)
-            poolmembers = cls.factory.create(
+            objects = cls.factory.create(
                     [[nodes[_idx], addrport['port'], pools[idx]]
                         for _idx,addrport in enumerate(addrportsq)], lb)
 
-            for idx_inner, pm in enumerate(poolmembers):
+            for idx_inner, pm in enumerate(objects):
                 if not minimal:
                     pm._address          = address2[idx][idx_inner]
                     pm._connection_limit = connection_limit2[idx][idx_inner]
                     pm._description      = description2[idx][idx_inner]
+                    pm._enabled          = enabled2[idx][idx_inner]
                     pm._dynamic_ratio    = dynamic_ratio2[idx][idx_inner]
                     pm._priority         = priority2[idx][idx_inner]
                     pm._rate_limit       = rate_limit2[idx][idx_inner]
                     pm._ratio            = ratio2[idx][idx_inner]
+
+            poolmembers.extend(objects)
 
         return poolmembers
 
@@ -408,29 +440,16 @@ class PoolMember(object):
     # TODO: There are more states than true/false, what do we do ?
     def enabled(self):
         if self._lb:
-            enabled_status = self._get_object_status()['enabled_status']
-            if enabled_status == 'ENABLED_STATUS_ENABLED':
-                self._enabled = True
-            elif enabled_status == 'ENABLED_STATUS_DISABLED_BY_PARENT':
-                self._enabled = True
-            elif enabled_status == 'ENABLED_STATUS_DISABLED':
-                self._enabled = False
-            else:
-                raise RuntimeError("Unknown enabled_status received for poolmember: '%s'" % enabled_status)
+            self._enabled = enabled_bool(
+                    [self._get_object_status()['enabled_status']]
+                )[0]
 
         return self._enabled
 
     @enabled.setter
     def enabled(self, value):
-        if value == True:
-            enabled_status = 'STATE_ENABLED'
-        elif value == False:
-            enabled_status = 'STATE_DISABLED'
-        else:
-            raise ValueError('enabled must be either True or False')
-
         if self._lb:
-            self._set_session_enabled_state(enabled_status)
+            self._set_session_enabled_state([bool_enabled(value)][0])
 
         self._enabled = value
 
