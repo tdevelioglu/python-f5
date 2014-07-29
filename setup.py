@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='f5',
-    version='0.1.8',
+    version='0.1.9',
     install_requires=['bigsuds'],
     description='Python Library to interact with F5',
     author='Taylan Develioglu',
