@@ -351,8 +351,9 @@ class NodeList(list):
         if self._partition == '/':
             self.lb.recursive_query = True
 
+        nodes = Node._get(self._lb, self._pattern)
         del self[:]
-        self.extend(Node._get(self._lb, self._pattern))
+        self.extend(nodes)
 
     @f5.util.lbtransaction
     def sync(self, create=False):
