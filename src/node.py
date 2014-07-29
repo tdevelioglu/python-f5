@@ -358,28 +358,28 @@ class NodeList(list):
     @f5.util.lbtransaction
     def sync(self, create=False):
         if create is True:
-            self._lbcall('create', self.names, self._get_nodeattr('_address'),
-                    self._get_nodeattr('_connection_limit'))
+            self._lbcall('create', self.names, self._getattr('_address'),
+                    self._getattr('_connection_limit'))
         else:
-            self.connection_limit = self._get_nodeattr('_connection_limit')
+            self.connection_limit = self._getattr('_connection_limit')
 
-        self.description   = self._get_nodeattr('_description')
-        self.dynamic_ratio = self._get_nodeattr('_dynamic_ratio')
-        self.enabled       = bool_enabled(self._get_nodeattr('_enabled'))
-        self.rate_limit    = self._get_nodeattr('_rate_limit')
-        self.ratio         = self._get_nodeattr('_ratio')
+        self.description   = self._getattr('_description')
+        self.dynamic_ratio = self._getattr('_dynamic_ratio')
+        self.enabled       = bool_enabled(self._getattr('_enabled'))
+        self.rate_limit    = self._getattr('_rate_limit')
+        self.ratio         = self._getattr('_ratio')
 
     def _lbcall(self, call, *args, **kwargs):
         return Node._lbcall(self._lb, call, *args, **kwargs)
 
-    def _set_nodeattr(self, attr, values):
+    def _setattr(self, attr, values):
         if len(values) is not len(self):
                 raise ValueError('value must be of same length as list')
 
         for idx,node in enumerate(self):
             setattr(node, attr, values[idx])
 
-    def _get_nodeattr(self, attr):
+    def _getattr(self, attr):
         return [getattr(node, attr) for node in self]
 
     @property
@@ -404,117 +404,117 @@ class NodeList(list):
     @property
     def address(self):
         values = self._lbcall('get_address', self.names)
-        self._set_nodeattr('_address', values)
+        self._setattr('_address', values)
         return values
 
     @property
     def _address(self):
-        return self._get_nodeattr('_address')
+        return self._getattr('_address')
 
     @_address.setter
     @f5.util.multisetter
     def _address(self, values):
-        self._set_nodeattr('_address',  values)
+        self._setattr('_address',  values)
 
     #### AV_STATUS ####
     @property
     def av_status(self):
         values = munge_av_status(
                 [s['availability_status'] for s in self._lbcall('get_object_status', self.names)])
-        self._set_nodeattr('_av_status', values)
+        self._setattr('_av_status', values)
         return values
 
     @property
     def _av_status(self):
-        return self._get_nodeattr('_av_status')
+        return self._getattr('_av_status')
 
     ### CONNECTION_LIMIT ###
     @property
     def connection_limit(self):
         values = self._lbcall('get_connection_limit', self.names)
-        self._set_nodeattr('_connection_limit',  values)
+        self._setattr('_connection_limit',  values)
         return values
 
     @connection_limit.setter
     @f5.util.multisetter
     def connection_limit(self, values):
         self._lbcall('set_connection_limit', self.names, values)
-        self._set_nodeattr('_connection_limit', values)
+        self._setattr('_connection_limit', values)
 
     @property
     def _connection_limit(self):
-        return self._get_nodeattr('_connection_limit')
+        return self._getattr('_connection_limit')
 
     @_connection_limit.setter
     @f5.util.multisetter
     def _connection_limit(self, values):
-        return self._set_nodeattr('_connection_limit', values)
+        return self._setattr('_connection_limit', values)
 
     ### DESCRIPTION ###
     @property
     def description(self):
         values = self._lbcall('get_description', self.names)
-        self._set_nodeattr('_description', values)
+        self._setattr('_description', values)
         return values
 
     @description.setter
     @f5.util.multisetter
     def description(self, values):
         self._lbcall('set_description', self.names, values)
-        self._set_nodeattr('_description', values)
+        self._setattr('_description', values)
 
     @property
     def _description(self):
-        return self._get_nodeattr('_description')
+        return self._getattr('_description')
 
     @_description.setter
     @f5.util.multisetter
     def _description(self, values):
-        return self._set_nodeattr('_description', values)
+        return self._setattr('_description', values)
 
     ### DYNAMIC_RATIO ###
     @property
     def dynamic_ratio(self):
         values = self._lbcall('get_dynamic_ratio', self.names)
-        self._set_nodeattr('_dynamic_ratio', values)
+        self._setattr('_dynamic_ratio', values)
         return values
 
     @dynamic_ratio.setter
     @f5.util.multisetter
     def dynamic_ratio(self, values):
         self._lbcall('set_dynamic_ratio', self.names, values)
-        self._set_nodeattr('_dynamic_ratio', values)
+        self._setattr('_dynamic_ratio', values)
 
     @property
     def _dynamic_ratio(self):
-        return self._get_nodeattr('_dynamic_ratio')
+        return self._getattr('_dynamic_ratio')
 
     @_dynamic_ratio.setter
     @f5.util.multisetter
     def _dynamic_ratio(self, values):
-        return self._set_nodeattr('_dynamic_ratio', values)
+        return self._setattr('_dynamic_ratio', values)
 
     ### ENABLED ###
     @property
     def enabled(self):
         values = enabled_bool([s['enabled_status'] for s in self._lbcall('get_object_status', self.names)])
-        self._set_nodeattr('_enabled', values)
+        self._setattr('_enabled', values)
         return values
      
     @enabled.setter
     @f5.util.multisetter
     def enabled(self, values):
         self._lbcall('set_session_enabled_state', self.names, bool_enabled(values))
-        self._set_nodeattr('_enabled', values)
+        self._setattr('_enabled', values)
 
     @property
     def _enabled(self):
-        return self._get_nodeattr('_enabled')
+        return self._getattr('_enabled')
 
     @_enabled.setter
     @f5.util.multisetter
     def _enabled(self, values):
-        return self._set_nodeattr('_enabled', values)
+        return self._setattr('_enabled', values)
 
     #### LB ####
     @property
@@ -524,13 +524,13 @@ class NodeList(list):
     @lb.setter
     @f5.util.multisetter
     def lb(self, value):
-        self._set_nodeattr('_lb', value)
+        self._setattr('_lb', value)
         self._lb = value
 
     #### NAME ####
     @property
     def names(self):
-        return self._get_nodeattr('name')
+        return self._getattr('name')
 
     @property
     def _names(self):
@@ -538,62 +538,62 @@ class NodeList(list):
 
     @_names.setter
     def _names(self, values):
-        self._set_nodeattr('_name', values)
+        self._setattr('_name', values)
 
     ### RATE_LIMIT ###
     @property
     def rate_limit(self):
         values = self._lbcall('get_rate_limit', self.names)
-        self._set_nodeattr('_rate_limit', values)
+        self._setattr('_rate_limit', values)
         return values
 
     @rate_limit.setter
     @f5.util.multisetter
     def rate_limit(self, values):
         self._lbcall('set_rate_limit', self.names, values)
-        self._set_nodeattr('_rate_limit', values)
+        self._setattr('_rate_limit', values)
 
     @property
     def _rate_limit(self):
-        return self._get_nodeattr('_rate_limit')
+        return self._getattr('_rate_limit')
 
     @_rate_limit.setter
     @f5.util.multisetter
     def _rate_limit(self, values):
-        return self._set_nodeattr('_rate_limit', values)
+        return self._setattr('_rate_limit', values)
 
     ### RATIO ###
     @property
     def ratio(self):
         values = self._lbcall('get_ratio', self.names)
-        self._set_nodeattr('_ratio', values)
+        self._setattr('_ratio', values)
         return values
 
     @ratio.setter
     @f5.util.multisetter
     def ratio(self, values):
         self._lbcall('set_ratio', self.names, values)
-        self._set_nodeattr('_ratio', values)
+        self._setattr('_ratio', values)
 
     @property
     def _ratio(self):
-        return self._get_nodeattr('_ratio')
+        return self._getattr('_ratio')
 
     @_ratio.setter
     @f5.util.multisetter
     def _ratio(self, values):
-        return self._set_nodeattr('_ratio', values)
+        return self._setattr('_ratio', values)
 
     #### STATUS_DESCR ####
     @property
     def status_descr(self):
         values = [s['status_description'] for s in self._lbcall('get_object_status', self.names)]
-        self._set_nodeattr('_status_descr', values)
+        self._setattr('_status_descr', values)
         return values
 
     @property
     def _status_descr(self):
-        return self._get_nodeattr('_status_descr')
+        return self._getattr('_status_descr')
 
     #### DICTIONARY ####
     @property
