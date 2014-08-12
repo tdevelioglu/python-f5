@@ -103,6 +103,7 @@ class Node(object):
         return self._connection_limit
 
     @connection_limit.setter
+    @f5.util.lbwriter2
     def connection_limit(self, value):
         self._lbcall('set_connection_limit', [self.name], [value])
         self._connection_limit = value
@@ -114,6 +115,7 @@ class Node(object):
         return self._description
 
     @description.setter
+    @f5.util.lbwriter2
     def description(self, value):
         self._lbcall('set_description', [self.name], [value])
         self._description = value
@@ -125,6 +127,7 @@ class Node(object):
         return self._dynamic_ratio
 
     @dynamic_ratio.setter
+    @f5.util.lbwriter2
     def dynamic_ratio(self, value):
         self._lbcall('set_dynamic_ratio_v2', [self.name], [value])
         self._description = value
@@ -137,6 +140,7 @@ class Node(object):
         return self._enabled
 
     @enabled.setter
+    @f5.util.lbwriter2
     def enabled(self, value):
         self._lbcall('set_session_enabled_state', [self.name], [bool_enabled(value)])
         self._enabled = value
@@ -148,6 +152,7 @@ class Node(object):
         return self._rate_limit
 
     @rate_limit.setter
+    @f5.util.lbwriter2
     def rate_limit(self, value):
         self._lbcall('set_rate_limit', [self.name], [value])
         self._rate_limit = value
@@ -159,6 +164,7 @@ class Node(object):
         return self._ratio
 
     @ratio.setter
+    @f5.util.lbwriter2
     def ratio(self, value):
         self._lbcall('set_ratio', [self.name], [value])
         self._ratio = value
@@ -206,17 +212,18 @@ class Node(object):
         return d
 
     @dictionary.setter
+    @f5.util.lbwriter2
     def dictionary(self, d):
-        self.name             = d['name']
-        self.address          = d['address']
-        self.av_status        = d['av_status']
+        self._name            = d['name']
+        self._address         = d['address']
+        self._av_status       = d['av_status']
         self.connection_limit = d['connection_limit']
         self.description      = d['description']
         self.dynamic_ratio    = d['dynamic_ratio']
         self.enabled          = d['enabled']
         self.rate_limit       = d['rate_limit']
         self.ratio            = d['ratio']
-        self.status_descr     = d['status_descr']
+        self._status_descr    = d['status_descr']
 
     @_dictionary.setter
     def _dictionary(self, d):
