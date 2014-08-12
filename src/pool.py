@@ -332,7 +332,7 @@ class PoolList(list):
         return Pool._lbcall(self._lb, call, *args, **kwargs)
 
     def _setattr(self, attr, values):
-        if len(values) is not len(self):
+        if len(values) != len(self):
                 raise ValueError('value must be of same length as list')
 
         for idx,pool in enumerate(self):
