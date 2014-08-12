@@ -22,6 +22,10 @@ def bool_enabled(bools):
     return ['STATE_ENABLED' if b else 'STATE_DISABLED' for b in bools]
 
 
+def munge_av_status(av_statuses):
+    """Truncate and lowercase availability_status"""
+    return [a[20:].lower() for a in av_statuses]
+
 class CachedFactory(f5.util.CachedFactory):
     def create(self, nodeportpools, lb=None, *args, **kwargs):
         objects = []
@@ -56,30 +60,44 @@ class CachedFactory(f5.util.CachedFactory):
 class PoolMember(object):
     __version = 11
 
-    def __init__(self, node, port, pool, lb=None, connection_limit=None, description=None,
-            dynamic_ratio=None, enabled=None, priority=None, rate_limit=None, ratio=None):
+    def __init__(self,
+            node,
+            port,
+            pool,
+            lb                  = None,
+            availability_status = None,
+            connection_limit    = None,
+            description         = None,
+            dynamic_ratio       = None,
+            enabled             = None,
+            priority            = None,
+            rate_limit          = None,
+            ratio               = None,
+            status_description  = None):
 
         if lb is not None and not isinstance(lb, f5.Lb):
             raise ValueError('lb must be of type f5.Lb, not %s' % (type(lb).__name__))
 
         # Make sure we're dealing with objects
         if isinstance(node, str):
-            node = f5.Node(node, lb)
+            node = f5.Node.factory.create([node], lb)[0]
         if isinstance(pool, str):
-            pool = f5.Pool(pool, lb)
+            pool = f5.Pool.factory.create([pool], lb)[0]
 
-        self._lb               = lb
-        self._node             = node
-        self._pool             = pool
-        self._port             = port
-        self._address          = node._address
-        self._connection_limit = connection_limit
-        self._description      = description
-        self._dynamic_ratio    = dynamic_ratio
-        self._enabled          = enabled
-        self._priority         = priority
-        self._rate_limit       = rate_limit
-        self._ratio            = ratio
+        self._lb                  = lb
+        self._node                = node
+        self._pool                = pool
+        self._port                = port
+        self._address             = node._address
+        self._availability_status = availability_status
+        self._connection_limit    = connection_limit
+        self._description         = description
+        self._dynamic_ratio       = dynamic_ratio
+        self._enabled             = enabled
+        self._priority            = priority
+        self._rate_limit          = rate_limit
+        self._ratio               = ratio
+        self._status_description  = status_description
 
         if self._lb:
             self._set_wsdl()
@@ -218,17 +236,28 @@ class PoolMember(object):
 
         pools = f5.Pool.factory.create(pools, lb)
         if not minimal:
-            enabled2 = []
-            for oslist in cls._get_object_statuses(lb, pools, addrportsq2):
-                enabled2.append(enabled_bool([os['enabled_status'] for os in oslist]))
-
             address2          = cls._get_addresses(lb, pools, addrportsq2)
             connection_limit2 = cls._get_connection_limits(lb, pools, addrportsq2)
             description2      = cls._get_descriptions(lb, pools, addrportsq2)
             dynamic_ratio2    = cls._get_dynamic_ratios(lb, pools, addrportsq2)
+            object_status2    = cls._get_object_statuses(lb, pools, addrportsq2)
             priority2         = cls._get_priorities(lb, pools, addrportsq2)
             rate_limit2       = cls._get_rate_limits(lb, pools, addrportsq2)
             ratio2            = cls._get_ratios(lb, pools, addrportsq2)
+
+        # munge availability_status
+        availability_status2 = [
+            munge_av_status(
+                [object_status['availability_status']
+                    for object_status in object_status1])
+                for object_status1 in object_status2]
+
+        # munge enabled_status
+        enabled2 = [
+            enabled_bool(
+                [object_status['enabled_status']
+                    for object_status in object_status1])
+                for object_status1 in object_status2]
 
         poolmembers  = []
         for idx, addrportsq in enumerate(addrportsq2):
@@ -239,14 +268,16 @@ class PoolMember(object):
 
             for idx_inner, pm in enumerate(objects):
                 if not minimal:
-                    pm._address          = address2[idx][idx_inner]
-                    pm._connection_limit = connection_limit2[idx][idx_inner]
-                    pm._description      = description2[idx][idx_inner]
-                    pm._enabled          = enabled2[idx][idx_inner]
-                    pm._dynamic_ratio    = dynamic_ratio2[idx][idx_inner]
-                    pm._priority         = priority2[idx][idx_inner]
-                    pm._rate_limit       = rate_limit2[idx][idx_inner]
-                    pm._ratio            = ratio2[idx][idx_inner]
+                    pm._address             = address2[idx][idx_inner]
+                    pm._availability_status = availability_status2[idx][idx_inner]
+                    pm._connection_limit    = connection_limit2[idx][idx_inner]
+                    pm._description         = description2[idx][idx_inner]
+                    pm._enabled             = enabled2[idx][idx_inner]
+                    pm._dynamic_ratio       = dynamic_ratio2[idx][idx_inner]
+                    pm._priority            = priority2[idx][idx_inner]
+                    pm._rate_limit          = rate_limit2[idx][idx_inner]
+                    pm._ratio               = ratio2[idx][idx_inner]
+                    pm._status_description  = object_status2[idx][idx_inner]['status_description']
 
             poolmembers.extend(objects)
 
@@ -282,6 +313,13 @@ class PoolMember(object):
 
         return cls._get_objects(lb, pools, addrportsq2, minimal)
 
+    def _get_object_status_properties(self):
+        objs = self._get_object_status()
+
+        self._availability_status = munge_av_status([objs['availability_status']])[0]
+        self._enabled             = enabled_bool([objs['enabled_status']])[0]
+        self._status_description  = objs['status_description']
+
     ###########################################################################
     # Properties
     ###########################################################################
@@ -301,6 +339,13 @@ class PoolMember(object):
 
         # Also update the node's lb <- not sure (yet) if this is the right thing
         self._node.lb = value
+
+    #### availability_status ####
+    @property
+    def availability_status(self):
+        if self._lb:
+            self._get_object_status_properties()
+        return self._availability_status
 
     #### address ####
     @property
@@ -440,10 +485,7 @@ class PoolMember(object):
     # TODO: There are more states than true/false, what do we do ?
     def enabled(self):
         if self._lb:
-            self._enabled = enabled_bool(
-                    [self._get_object_status()['enabled_status']]
-                )[0]
-
+            self._get_object_status_properties()
         return self._enabled
 
     @enabled.setter
@@ -452,6 +494,13 @@ class PoolMember(object):
             self._set_session_enabled_state([bool_enabled(value)][0])
 
         self._enabled = value
+
+    #### status_description ####
+    @property
+    def status_description(self):
+        if self._lb:
+            self._get_object_status_properties()
+        return self._status_description
 
     ###########################################################################
     # Public API
@@ -497,6 +546,9 @@ class PoolMember(object):
 
     def refresh(self):
         """Fetch all attributes from the lb"""
+        # We don't need to call availability_status or status_description
+        # because calling any of enabled, availability_status or
+        # status_description updates all three.
         self.address
         self.connection_limit
         self.description
