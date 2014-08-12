@@ -277,9 +277,9 @@ class Lb(object):
         return node
 
     @recursivereader
-    def nodes_get(self, pattern=None, minimal=False):
+    def nodes_get(self, pattern=None, minimal=False, partition='/'):
         """Returns a list of F5 Nodes, takes optional list of pools and pattern"""
-        return f5.Node._get(self, pattern, minimal)
+        return f5.NodeList(self, pattern, partition, minimal)
 
     def rule_get(self, name):
         """Returns a single F5 Rule"""

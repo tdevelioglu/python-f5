@@ -245,19 +245,19 @@ class PoolMember(object):
             rate_limit2       = cls._get_rate_limits(lb, pools, addrportsq2)
             ratio2            = cls._get_ratios(lb, pools, addrportsq2)
 
-        # munge availability_status
-        availability_status2 = [
-            munge_av_status(
-                [object_status['availability_status']
-                    for object_status in object_status1])
-                for object_status1 in object_status2]
+            # munge availability_status
+            availability_status2 = [
+                munge_av_status(
+                    [object_status['availability_status']
+                        for object_status in object_status1])
+                    for object_status1 in object_status2]
 
-        # munge enabled_status
-        enabled2 = [
-            enabled_bool(
-                [object_status['enabled_status']
-                    for object_status in object_status1])
-                for object_status1 in object_status2]
+            # munge enabled_status
+            enabled2 = [
+                enabled_bool(
+                    [object_status['enabled_status']
+                        for object_status in object_status1])
+                    for object_status1 in object_status2]
 
         poolmembers  = []
         for idx, addrportsq in enumerate(addrportsq2):

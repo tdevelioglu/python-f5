@@ -40,6 +40,15 @@ class CachedFactory(object):
         key = hash(key)
         self._cache[key] = obj
 
+    def delete(self, obj):
+        key = obj.name
+        if obj.lb is not None:
+            key = obj.lb.host + key
+
+        key = hash(key)
+        if key in self._cache:
+            del self._cache[key]
+
 # Looks at the first list for empty lists and removes elements in the same position from all lists
 # including itself.
 def prune_f5_lists(list1, *lists):
@@ -77,12 +86,15 @@ def multisetter(func):
         func(self, values)
     return wrapper
 
+
 # Ensure class instance cache is updated on a key attribute change
 def updatefactorycache(func):
     @wraps(func)
     def wrapper(self, *args, **kwargs):
+        self.factory.delete(self)
         func_ret = func(self, *args, **kwargs)
         self.factory.put(self)
+
         return func_ret
 
     return wrapper

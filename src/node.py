@@ -33,7 +33,7 @@ class Node(object):
             else:
                 self._dictionary = fromdict
         else:
-            self._name             = name
+            self.__name            = name
             self._address          = address
             self._av_status        = None
             self._connection_limit = connection_limit
@@ -81,7 +81,16 @@ class Node(object):
     #### NAME ####
     @property
     def name(self):
-        return self._name
+        return self.__name
+
+    @property
+    def _name(self):
+        return self.__name
+
+    @_name.setter
+    @f5.util.updatefactorycache
+    def _name(self, value):
+        self.__name = value
 
     #### ADDRESS ####
     @property
@@ -345,8 +354,9 @@ Node.factory = f5.util.CachedFactory(Node)
 
 
 class NodeList(list):
-    def __init__(self, lb=None, pattern=None, partition='/', fromdict=None):
+    def __init__(self, lb=None, pattern=None, partition='/', minimal=False, fromdict=None):
         self._lb = lb
+        self._minimal   = minimal
         self._partition = partition
         self._pattern   = pattern
 
@@ -361,7 +371,7 @@ class NodeList(list):
         if self._partition == '/':
             self.lb.recursive_query = True
 
-        nodes = Node._get(self._lb, self._pattern)
+        nodes = Node._get(self._lb, self._pattern, self._minimal)
         del self[:]
         self.extend(nodes)
 
