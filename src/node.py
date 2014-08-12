@@ -49,6 +49,9 @@ class Node(object):
     def __repr__(self):
         return "f5.Node('%s')" % (self.name)
 
+    def __str__(self):
+        return self._name
+
     # This just adds the wsdl to calls to the lb for convenience
     def __lbcall(self, call, *args, **kwargs):
         return self.lb._call(self.__wsdl + '.' + call, *args, **kwargs)
