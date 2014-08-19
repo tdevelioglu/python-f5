@@ -21,6 +21,9 @@ A library to make manipulating F5 loadbalancers easy
     import f5
     lb = f5.Lb('f5.example.com', 'admin', 'admin')
 
+    # Get the failover state
+    lb.failover_state
+
     # Disable versioncheck if you know better
     lb = f5.Lb('f5.example.com', 'admin', 'admin', versioncheck=False)
 
