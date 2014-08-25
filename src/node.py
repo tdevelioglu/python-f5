@@ -169,7 +169,7 @@ class Node(object):
     #### RATIO ####
     @property
     def ratio(self):
-        self._ratio = self._lbcall('set_rate_limit', [self.name])[0]
+        self._ratio = self._lbcall('get_ratio', [self.name])[0]
         return self._ratio
 
     @ratio.setter
