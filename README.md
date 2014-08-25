@@ -28,11 +28,11 @@ A library to make manipulating F5 loadbalancers easy
     lb = f5.Lb('f5.example.com', 'admin', 'admin', versioncheck=False)
 
     # Get all intranet pools
-    pools = lb.pools_search(pattern='.*intranet.*')
+    pools = lb.pools_get(pattern='.*intranet.*')
 
     # I only need the names - go faster!
     # (This will skip populating all the object attributes, useful if you just want a listing)
-    pools = lb.pools_search(pattern='.*intranet.*', minimal=True)
+    pools = lb.pools_get(pattern='.*intranet.*', minimal=True)
 
     # Get the members in those pools
     pms = lb.pms_get(pools=pools)
