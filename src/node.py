@@ -346,9 +346,10 @@ class Node(object):
         self.ratio
         self.status_descr
 
+    @f5.util.lbwriter2
     def delete(self):
         """Delete the node from the lb"""
-        self._delete_node_address()
+        self._lbcall('delete_node_address', [self._name])
 
 Node.factory = f5.util.CachedFactory(Node)
 
