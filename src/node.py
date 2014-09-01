@@ -304,7 +304,7 @@ class Node(object):
         try:
             self._lbcall('get_address', [self._name])
         except ServerError as e:
-            if 'was not found' in e.message:
+            if 'was not found' str(e):
                 return False
             else:
                 raise

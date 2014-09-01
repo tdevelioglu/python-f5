@@ -535,7 +535,7 @@ class PoolMember(object):
         try:
             self._get_description()
         except ServerError as e:
-            if 'was not found' in e.message:
+            if 'was not found' str(e):
                 return False
             else:
                 raise

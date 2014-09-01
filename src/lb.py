@@ -175,7 +175,7 @@ class Lb(object):
         try:
             wsdl.start_transaction()
         except ServerError as e:
-            if 'Only one transaction can be open at any time' in e.message:
+            if 'Only one transaction can be open at any time' in str(e):
                 pass
             else:
                 raise
@@ -185,7 +185,7 @@ class Lb(object):
         try:
             wsdl.rollback_transaction()
         except ServerError as e:
-            if 'No transaction is open to roll back.' in e.message:
+            if 'No transaction is open to roll back.' in str(e):
                 pass
             else:
                 raise
@@ -215,7 +215,7 @@ class Lb(object):
         try:
             wsdl.start_transaction()
         except ServerError as e:
-            if 'Only one transaction can be open at any time' in e.message:
+            if 'Only one transaction can be open at any time' in str(e):
                 return True
             else:
                 raise
