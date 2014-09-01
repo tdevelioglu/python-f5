@@ -281,6 +281,10 @@ class Pool(object):
             if self._description is not None:
                 self.description = self._description
 
+    @f5.util.lbwriter2
+    def delete(self):
+        """Delete the pool from the lb"""
+        self._lbcall('delete_pool', [self._name])
 
 Pool.factory = f5.util.CachedFactory(Pool)
 
