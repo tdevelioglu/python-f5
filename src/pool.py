@@ -23,16 +23,9 @@ class Pool(object):
     __version = 11
     __wsdl = 'LocalLB.Pool'
 
-    def __init__(self,
-            name,
-            lb                    = None,
-            description           = None,
-            lbmethod              = None,
-            members               = None,
-            minimum_active_member = None,
-            minimum_up_member     = None,
-            slow_ramp_time        = None,
-            fromdict              = None):
+    def __init__(self, name, lb=None, description=None, lbmethod=None,
+            members=None, minimum_active_member=None, minimum_up_member=None,
+            slow_ramp_time=None, fromdict=None):
 
         self._lb = lb
 
@@ -265,7 +258,7 @@ class Pool(object):
         try:
             self._lbcall('get_description', [self._name])
         except ServerError as e:
-            if 'was not found' in e.message:
+            if 'was not found' in str(e):
                 return False
             else:
                 raise
@@ -282,7 +275,8 @@ class Pool(object):
         if not self.exists():
             if self._lbmethod is None or self._members is None:
                 raise RuntimeError('lbmethod and members must be set on create')
-            self._create()
+            self._lbcall('create_v2', [self._name],
+                    [unmunge_lbmethod([self._lbmethod])[0]], [self._members])
 
             if self._description is not None:
                 self.description = self._description
