@@ -214,7 +214,7 @@ class Rule(object):
         try:
             self._get_description()
         except ServerError as e:
-            if 'was not found' str(e):
+            if 'was not found' in str(e):
                 return False
             else:
                 raise
