@@ -294,7 +294,7 @@ class PoolMember(object):
                 else:
                     pools = [pools.name]
         else:
-            pools = f5.Pool._get_list(lb)
+            pools = f5.Pool._get(lb)
 
         # no pools no glory
         if not pools:
