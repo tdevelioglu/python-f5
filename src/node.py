@@ -352,7 +352,7 @@ class Node(object):
         if force is True:
             # Delete all associated poolmembers
             # Replace this with a PoolMemberList when ready.
-            for pm in self.lb.pms_get(pattern='^%s$' % self.name, minimal=True):
+            for pm in self.lb.pms_get(pattern='^%s:[0-9]+$' % self.name, minimal=True):
                 pm.delete()
         self._lbcall('delete_node_address', [self._name])
 
