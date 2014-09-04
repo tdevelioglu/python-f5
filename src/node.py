@@ -151,7 +151,7 @@ class Node(object):
     @enabled.setter
     @f5.util.lbwriter2
     def enabled(self, value):
-        self._lbcall('set_session_enabled_state', [self.name], [bool_enabled(value)])
+        self._lbcall('set_session_enabled_state', [self.name], bool_enabled([value]))
         self._enabled = value
 
     #### RATE_LIMIT ####
