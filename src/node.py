@@ -347,8 +347,13 @@ class Node(object):
         self.status_descr
 
     @f5.util.lbwriter2
-    def delete(self):
+    def delete(self, force=False):
         """Delete the node from the lb"""
+        if force is True:
+            # Delete all associated poolmembers
+            # Replace this with a PoolMemberList when ready.
+            for pm in lb.pms_get(pattern='^%s$' % self.name, minimal=True):
+                pm.delete()
         self._lbcall('delete_node_address', [self._name])
 
 Node.factory = f5.util.CachedFactory(Node)
