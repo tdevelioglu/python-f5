@@ -172,7 +172,7 @@ A library to make manipulating F5 loadbalancers easy
     # This time with a member
     node = lb.node_get('/Common/node-01')
     # TODO: need some more logic here. pool parameter is redundant when new object is meant to become a member
-    pm   = f5.Poolmember(node=node, port=80, pool=pool)
+    pm   = f5.PoolMember(node=node, port=80, pool=pool)
     
     pool = f5.Pool(name='/Common/pool-01', lbmethod='ratio_member', members=[pm], lb=lb)
 
@@ -208,10 +208,10 @@ A library to make manipulating F5 loadbalancers easy
     node = lb.node_get('/Common/node-01')
     pool = lb.pool_get('/Common/pool-01)
 
-    pm = f5.Poolmember(node=node, port=80, pool=pool, lb=lb)
+    pm = f5.PoolMember(node=node, port=80, pool=pool, lb=lb)
 
     # We don't *have to* use objects, string are also fine.
-    pm = f5.Poolmember(node='/Common/node-01', port=80, pool='/Common/pool-01', lb=lb)
+    pm = f5.PoolMember(node='/Common/node-01', port=80, pool='/Common/pool-01', lb=lb)
 
     # Save it to the lb before using setters (or receive an error)
     pm.save()
@@ -228,7 +228,7 @@ A library to make manipulating F5 loadbalancers easy
 
     # We can defer setting the lb until the very end and still use the setters to make changes
     # asynchronously. If lb isn't set, the setters will just update the local copies.
-    pm = f5.Poolmember(node=node, port=80, pool=pool)
+    pm = f5.PoolMember(node=node, port=80, pool=pool)
 
     pm.connection_limit = 9000
     pm.description      = 'Whos poolmember is this?'
