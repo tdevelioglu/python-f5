@@ -270,12 +270,12 @@ class VirtualServer(object):
             }
 
         # Not fully supported yet
-        # This requires more logic. 'profiles' and 'resources' should be broken
+        # This requires more logic. 'profiles' and 'resource' should be broken
         # down and constructed from other attributes.
         profiles  = [{'profile_name': '/Common/tcp'}]
-        resources = [{'type': self._unmunge_vstype(self._vstype),
-            'default_pool_name': self._default_pool.name}]
-        self.__wsdl.create([definition], [self._wildmask], [resources],
+        resource  = {'type': self._unmunge_vstype(self._vstype),
+            'default_pool_name': self._default_pool.name}
+        self.__wsdl.create([definition], [self._wildmask], [resource],
                 [profiles])
 
     @f5.util.lbwriter
