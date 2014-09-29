@@ -275,7 +275,7 @@ class VirtualServer(object):
         profiles  = [{'profile_name': '/Common/tcp'}]
         resources = [{'type': self._unmunge_vstype(self._vstype),
             'default_pool_name': self._default_pool.name}]
-        self.__wsdl._create([definition], [self._wildmask], [resources],
+        self.__wsdl.create([definition], [self._wildmask], [resources],
                 [profiles])
 
     @f5.util.lbwriter
