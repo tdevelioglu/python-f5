@@ -262,7 +262,21 @@ class VirtualServer(object):
 
     @f5.util.lbwriter
     def _create(self):
-        self.__wsdl._create([self._name])
+        definition = {
+            'name'     : self._name,
+            'address'  : self._address,
+            'port'     : self._port,
+            'protocol' : self._unmunge_protocol(self._protocol)
+            }
+
+        # Not fully supported yet
+        # This requires more logic. 'profiles' and 'resources' should be broken
+        # down and constructed from other attributes.
+        profiles  = [{'profile_name': '/Common/tcp'}]
+        resources = [{'type': self._unmunge_vstype(self._vstype),
+            'default_pool_name': self._default_pool.name}]
+        self.__wsdl._create([definition], [self._wildmask], [resources],
+                [profiles])
 
     @f5.util.lbwriter
     def _delete_virtual_server(self):
@@ -513,21 +527,6 @@ class VirtualServer(object):
             raise
 
         return True
-
-    def _create(self):
-        definition = {
-            'name'     : self._name,
-            'address'  : self._address,
-            'port'     : self._port,
-            'protocol' : self._unmunge_protocol(self._protocol)
-            }
-
-        # Not fully supported yet
-        # This requires more logic. 'profiles' and 'resources' should be broken down and
-        # constructed from other attributes.
-        profiles  = [{'profile_name': '/Common/tcp'}]
-        resources = [{'type': self._unmunge_vstype(self._vstype), 'default_pool_name': self._default_pool.name}]
-        self._create([definition], [self._wildmask], [resources], [profiles])
 
     @f5.util.lbtransaction
     def save(self):
