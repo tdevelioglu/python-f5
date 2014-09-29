@@ -534,11 +534,14 @@ class VirtualServer(object):
         """Save the virtualserver to the Lb"""
 
         if not self.exists():
-            args = [self._address, self._default_pool, self._port, self._protocol, self._wildmask,
-                self._vstype, self._profiles]
-            for arg in args:
-                if arg is None:
-                    raise RuntimeError('%s must be set on create' % args)
+            args = {'address': self._address,
+                    'default_pool': self._default_pool, 'port': self._port,
+                    'protocol': self._protocol, 'wildmask': self._wildmask,
+                    'vstype': self._vstype, 'profiles': self._profiles}
+
+            for k,v in args.items():
+                if v is None:
+                    raise ValueError('%s can not be %s on create' % (k, v))
 
             self._create()
         else:
