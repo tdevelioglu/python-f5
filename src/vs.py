@@ -526,7 +526,7 @@ class VirtualServer(object):
         # This requires more logic. 'profiles' and 'resources' should be broken down and
         # constructed from other attributes.
         profiles  = [{'profile_name': '/Common/tcp'}]
-        resources = [{'type': self._unmunge(self._vstype), 'default_pool_name': self._default_pool.name}]
+        resources = [{'type': self._unmunge_vstype(self._vstype), 'default_pool_name': self._default_pool.name}]
         self._create([definition], [self._wildmask], [resources], [profiles])
 
     @f5.util.lbtransaction
