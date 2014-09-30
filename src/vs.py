@@ -280,7 +280,7 @@ class VirtualServer(object):
 
     @f5.util.lbwriter
     def _delete_virtual_server(self):
-        self.__wsdl._delete_virtual_server([self._name])
+        self.__wsdl.delete_virtual_server([self._name])
 
     @staticmethod
     def _munge_enabled(enabled_state):
