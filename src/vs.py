@@ -379,7 +379,7 @@ class VirtualServer(object):
 
     @address.setter
     def address(self, value):
-        ap = {'address': value, port: self._port}
+        ap = {'address': value, 'port': self._port}
         if self._lb:
             self._set_destination(ap)
         self._address = value
