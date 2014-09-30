@@ -254,7 +254,7 @@ class VirtualServer(object):
     def _set_wildmask(self, value=None):
         if value is None:
             value = self._wildmask
-        self.__wsdl.get_wildmask([self._name], [value])
+        self.__wsdl.set_wildmask([self._name], [value])
 
     @f5.util.lbwriter
     def _set_description(self, value):
