@@ -491,7 +491,7 @@ class PoolMember(object):
     @enabled.setter
     def enabled(self, value):
         if self._lb:
-            self._set_session_enabled_state([bool_enabled(value)][0])
+            self._set_session_enabled_state([bool_enabled([value])[0]])
 
         self._enabled = value
 
