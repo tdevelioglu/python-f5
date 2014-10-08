@@ -74,6 +74,8 @@ def prune_f5_lists(list1, *lists):
 ###########################################################################
 from functools import wraps
 
+# Multiplies a single value to a list with length of parent instance
+# and preps the lb for writing.
 def multisetter(func):
     @wraps(func)
     @lbwriter2
