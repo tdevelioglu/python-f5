@@ -369,7 +369,11 @@ class NodeList(list):
         if fromdict is not None:
             self.dictionary = fromdict
         elif lb is not None:
+
+        if lb is not None:
             self.refresh()
+        elif fromdict is not None:
+            self.dictionary = fromdict
 
     @f5.util.restore_session_values
     def refresh(self):
@@ -400,11 +404,8 @@ class NodeList(list):
 
     def _setattr(self, attr, values):
         """Sets an attribute on all objects in list"""
-        if not isinstance(values, list):
-            values=[values] * len(self)
-        else:
-            if len(values) is not len(self):
-                raise ValueError('value must be of same length as list')
+        if len(values) is not len(self):
+            raise ValueError('value must be of same length as list')
 
         for idx,node in enumerate(self):
             setattr(node, attr, values[idx])
@@ -442,7 +443,7 @@ class NodeList(list):
         return self._getattr('_address')
 
     @_address.setter
-    @f5.util.lbwriter2
+    @f5.util.multisetter
     def _address(self, values):
         self._setattr('_address',  values)
 
@@ -466,6 +467,7 @@ class NodeList(list):
         return values
 
     @connection_limit.setter
+    @f5.util.multisetter
     @f5.util.lbwriter2
     def connection_limit(self, values):
         self._lbcall('set_connection_limit', self.names, values)
@@ -476,7 +478,7 @@ class NodeList(list):
         return self._getattr('_connection_limit')
 
     @_connection_limit.setter
-    @f5.util.lbwriter2
+    @f5.util.multisetter
     def _connection_limit(self, values):
         return self._setattr('_connection_limit', values)
 
@@ -488,6 +490,7 @@ class NodeList(list):
         return values
 
     @description.setter
+    @f5.util.multisetter
     @f5.util.lbwriter2
     def description(self, values):
         self._lbcall('set_description', self.names, values)
@@ -498,7 +501,7 @@ class NodeList(list):
         return self._getattr('_description')
 
     @_description.setter
-    @f5.util.lbwriter2
+    @f5.util.multisetter
     def _description(self, values):
         return self._setattr('_description', values)
 
@@ -510,6 +513,7 @@ class NodeList(list):
         return values
 
     @dynamic_ratio.setter
+    @f5.util.multisetter
     @f5.util.lbwriter2
     def dynamic_ratio(self, values):
         self._lbcall('set_dynamic_ratio', self.names, values)
@@ -520,7 +524,7 @@ class NodeList(list):
         return self._getattr('_dynamic_ratio')
 
     @_dynamic_ratio.setter
-    @f5.util.lbwriter2
+    @f5.util.multisetter
     def _dynamic_ratio(self, values):
         return self._setattr('_dynamic_ratio', values)
 
@@ -532,6 +536,7 @@ class NodeList(list):
         return values
      
     @enabled.setter
+    @f5.util.multisetter
     @f5.util.lbwriter2
     def enabled(self, values):
         self._lbcall('set_session_enabled_state', self.names, bool_enabled(values))
@@ -542,7 +547,7 @@ class NodeList(list):
         return self._getattr('_enabled')
 
     @_enabled.setter
-    @f5.util.lbwriter2
+    @f5.util.multisetter
     def _enabled(self, values):
         return self._setattr('_enabled', values)
 
@@ -552,6 +557,7 @@ class NodeList(list):
         return self._lb
 
     @lb.setter
+    @f5.util.multisetter
     def lb(self, value):
         self._setattr('_lb', value)
         self._lb = value
@@ -566,6 +572,7 @@ class NodeList(list):
         return self._names
 
     @_names.setter
+    @f5.util.multisetter
     def _names(self, values):
         self._setattr('_name', values)
 
@@ -577,6 +584,7 @@ class NodeList(list):
         return values
 
     @rate_limit.setter
+    @f5.util.multisetter
     @f5.util.lbwriter2
     def rate_limit(self, values):
         self._lbcall('set_rate_limit', self.names, values)
@@ -587,7 +595,7 @@ class NodeList(list):
         return self._getattr('_rate_limit')
 
     @_rate_limit.setter
-    @f5.util.lbwriter2
+    @f5.util.multisetter
     def _rate_limit(self, values):
         return self._setattr('_rate_limit', values)
 
@@ -599,6 +607,7 @@ class NodeList(list):
         return values
 
     @ratio.setter
+    @f5.util.multisetter
     @f5.util.lbwriter2
     def ratio(self, values):
         self._lbcall('set_ratio', self.names, values)
@@ -609,7 +618,7 @@ class NodeList(list):
         return self._getattr('_ratio')
 
     @_ratio.setter
-    @f5.util.lbwriter2
+    @f5.util.multisetter
     def _ratio(self, values):
         return self._setattr('_ratio', values)
 
