@@ -556,7 +556,7 @@ class NodeList(list):
     @f5.util.multisetter
     def lb(self, value):
         self._setattr('_lb', value)
-        self._lb = value
+        self._lb = value[0]
 
     #### NAME ####
     @property
