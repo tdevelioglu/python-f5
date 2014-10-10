@@ -369,11 +369,7 @@ class NodeList(list):
         if fromdict is not None:
             self.dictionary = fromdict
         elif lb is not None:
-
-        if lb is not None:
             self.refresh()
-        elif fromdict is not None:
-            self.dictionary = fromdict
 
     @f5.util.restore_session_values
     def refresh(self):
