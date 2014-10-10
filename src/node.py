@@ -366,10 +366,10 @@ class NodeList(list):
         self._partition = partition
         self._pattern   = pattern
 
-        if lb is not None:
-            self.refresh()
-        else:
+        if fromdict is not None:
             self.dictionary = fromdict
+        elif lb is not None:
+            self.refresh()
 
     @f5.util.restore_session_values
     def refresh(self):
