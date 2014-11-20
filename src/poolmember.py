@@ -56,6 +56,14 @@ class CachedFactory(f5.util.CachedFactory):
         key = hash(key)
         self._cache[key] = obj
 
+    def delete(self, obj):
+        key = obj.node.name + str(obj.port) + obj.pool.name
+        if obj.lb is not None:
+            key = obj.lb.host + key
+
+        key = hash(key)
+        if key in self._cache:
+            del self._cache[key]
 
 class PoolMember(object):
     __version = 11
