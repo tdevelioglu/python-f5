@@ -1,5 +1,6 @@
-#!/usr/bin/python
-from setuptools import setup, find_packages
+#!/usr/bin/env python
+
+from setuptools import setup
 
 setup(
     name='f5',
@@ -8,7 +9,6 @@ setup(
     description='Python Library to interact with F5',
     author='Taylan Develioglu',
     url='https://github.com/tdevelioglu/python-f5;',
-    package_dir={'f5': 'src'},
-    packages = ['f5'],
-    license = 'Apache',
+    packages=['f5'],
+    license='Apache',
 )
