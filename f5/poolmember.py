@@ -30,6 +30,9 @@ class CachedFactory(f5.util.CachedFactory):
     def create(self, nodeportpools, lb=None, *args, **kwargs):
         objects = []
 
+        if not isinstance(nodeportpools, list):
+            nodeportpools = [nodeportpools]
+
         for nps in nodeportpools:
             key = nps[0].name + str(nps[1]) + nps[2].name
             if lb is not None:

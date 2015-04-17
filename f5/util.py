@@ -76,7 +76,6 @@ from functools import wraps
 
 
 # Multiplies a single value to a list with length of parent instance
-# and preps the lb for writing.
 def multisetter(func):
     @wraps(func)
     def wrapper(self, values):

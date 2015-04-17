@@ -259,7 +259,7 @@ class Lb(object):
 
     def pm_get(self, node, port, pool):
         """Returns a single F5 PoolMember"""
-        pm = f5.PoolMember.factory.create([node, port, pool], self)[0]
+        pm = f5.PoolMember.factory.create((node, port, pool), self)[0]
         pm.refresh()
 
         return pm
