@@ -1,11 +1,16 @@
 import bigsuds
-import re
-from bigsuds import ServerError
-from copy import copy
-from f5.exceptions import UnsupportedF5Version
 import f5
 import f5.util
+import re
+
+from bigsuds import ServerError
+from copy import copy
 from functools import reduce
+
+from .exceptions import (
+    UnsupportedF5Version, PoolNotFound
+)
+
 
 # 'http://pingfive.typepad.com/blog/2010/04/deep-getattr-python-function.html'
 def deepgetattr(obj, attr):
@@ -247,8 +252,14 @@ class Lb(object):
     
     def pool_get(self, name):
         """Returns a single F5 pool"""
-        pool = f5.Pool.factory.create([name], self)[0]
-        pool.refresh()
+        try:
+            pool = f5.Pool.factory.create([name], self)[0]
+            pool.refresh()
+        except ServerError as e:
+            if 'was not found.' in str(e):
+                raise PoolNotFound(name)
+            else:
+                raise
 
         return pool
 

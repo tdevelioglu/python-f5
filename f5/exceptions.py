@@ -5,12 +5,12 @@ class UnsupportedF5Version(Exception):
         Exception.__init__(self, message)
         self.version = version
 
-class PoolDoesNotExist(Exception):
+class PoolNotFound(Exception):
     pass
 
 class BigSudsExceptionParser(object):
     """ This class parses the exception from bigsuds and makes possible
-        to read in in a decent way
+        to read it in a decent way
     """
     _instance = None
     _caught = None
@@ -29,7 +29,7 @@ class BigSudsExceptionParser(object):
     # Exception: Common::OperationFailed
     #     primary_error_code   : 16908342 (0x01020036)
     #     secondary_error_code : 0
-    #     error_string         : 01020036:3: The requested pool (/WWW/www.booking.com) was not found.'
+    #     error_string         : 01020036:3: The requested pool (/EXAMPLE/www.example.com) was not found.'
 
     def __init__(self, _exception):
         try:
