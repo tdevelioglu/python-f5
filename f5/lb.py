@@ -8,7 +8,8 @@ from copy import copy
 from functools import reduce
 
 from .exceptions import (
-    UnsupportedF5Version, PoolNotFound
+    UnsupportedF5Version, NodeNotFound, PoolNotFound, PoolMemberNotFound,
+    RuleNotFound, VirtualServerNotFound
 )
 
 
@@ -270,8 +271,14 @@ class Lb(object):
 
     def pm_get(self, node, port, pool):
         """Returns a single F5 PoolMember"""
-        pm = f5.PoolMember.factory.create((node, port, pool), self)[0]
-        pm.refresh()
+        try:
+            pm = f5.PoolMember.factory.create((node, port, pool), self)[0]
+            pm.refresh()
+        except ServerError as e:
+            if 'was not found.' in str(e):
+                raise PoolMemberNotFound(name)
+            else:
+                raise
 
         return pm
 
@@ -282,8 +289,14 @@ class Lb(object):
 
     def node_get(self, name):
         """Returns a single F5 Node"""
-        node = f5.Node.factory.create([name], self)[0]
-        node.refresh()
+        try:
+            node = f5.Node.factory.create([name], self)[0]
+            node.refresh()
+        except ServerError as e:
+            if 'was not found.' in str(e):
+                raise NodeNotFound(name)
+            else:
+                raise
 
         return node
 
@@ -294,8 +307,14 @@ class Lb(object):
 
     def rule_get(self, name):
         """Returns a single F5 Rule"""
-        rule = f5.Rule.factory.create([name], self)[0]
-        rule.refresh()
+        try:
+            rule = f5.Rule.factory.create([name], self)[0]
+            rule.refresh()
+        except ServerError as e:
+            if 'was not found.' in str(e):
+                raise RuleNotFound(name)
+            else:
+                raise
 
         return rule
 
@@ -306,8 +325,14 @@ class Lb(object):
 
     def vs_get(self, name):
         """Returns a single F5 VirtualServer"""
-        vs = f5.VirtualServer.factory.create([name], self)[0]
-        vs.refresh()
+        try:
+            vs = f5.VirtualServer.factory.create([name], self)[0]
+            vs.refresh()
+        except ServerError as e:
+            if 'was not found.' in str(e):
+                raise VirtualServerNotFound(name)
+            else:
+                raise
 
         return vs
 

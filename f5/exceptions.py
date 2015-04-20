@@ -1,13 +1,5 @@
 import re
 
-class UnsupportedF5Version(Exception):
-    def __init__(self, message, version):
-        Exception.__init__(self, message)
-        self.version = version
-
-class PoolNotFound(Exception):
-    pass
-
 class BigSudsExceptionParser(object):
     """ This class parses the exception from bigsuds and makes possible
         to read it in a decent way
@@ -68,6 +60,31 @@ class BigSudsExceptionParser(object):
     def secondary_error_code(self):
         return self._secondary_error_code
 
+
+class NodeNotFound(Exception):
+    pass
+
+
+class PoolNotFound(Exception):
+    pass
+
+
+class PoolMemberNotFound(Exception):
+    pass
+
+
+class RuleNotFound(Exception):
+    pass
+
+
+class UnsupportedF5Version(Exception):
+    def __init__(self, message, version):
+        Exception.__init__(self, message)
+        self.version = version
+
+
+class VirtualServerNotFound(Exception):
+    pass
 
 
 
