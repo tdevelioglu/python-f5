@@ -276,7 +276,7 @@ class Lb(object):
             pm.refresh()
         except ServerError as e:
             if 'was not found.' in str(e):
-                raise PoolMemberNotFound(name)
+                raise PoolMemberNotFound((node, port, pool))
             else:
                 raise
 
