@@ -1,11 +1,17 @@
 import bigsuds
-import re
-from bigsuds import ServerError
-from copy import copy
-from f5.exceptions import UnsupportedF5Version
 import f5
 import f5.util
+import re
+
+from bigsuds import ServerError
+from copy import copy
 from functools import reduce
+
+from .exceptions import (
+    UnsupportedF5Version, NodeNotFound, PoolNotFound, PoolMemberNotFound,
+    RuleNotFound, VirtualServerNotFound
+)
+
 
 # 'http://pingfive.typepad.com/blog/2010/04/deep-getattr-python-function.html'
 def deepgetattr(obj, attr):
@@ -59,13 +65,21 @@ def recursivereader(func):
 class Lb(object):
     _version = 11
 
-    def __init__(self, host, username, password, versioncheck=True):
+    def __init__(self, host, username, password, versioncheck=True, use_session=True):
 
         self._host         = host
         self._username     = username
         self._versioncheck = versioncheck
+        self._use_session  = use_session
 
-        self._transport = bigsuds.BIGIP(host, username, password)
+        if use_session:
+            self._transport = bigsuds.BIGIP(
+                host, username, password
+            ).with_session_id()
+        else:
+            self._transport = bigsuds.BIGIP(
+                host, username, password
+            )
         version = self._transport.System.SystemInfo.get_version()
         if versioncheck and not 'BIG-IP_v11' in version:
             raise UnsupportedF5Version('This class only supports BIG-IP v11', version)
@@ -74,6 +88,7 @@ class Lb(object):
         self._recursive_query     = self.recursive_query
         self._transaction         = self.transaction
         self._transaction_timeout = self.transaction_timeout
+
 
     def __repr__(self):
         return "f5.Lb('%s')" % (self._host)
@@ -96,6 +111,10 @@ class Lb(object):
     @property
     def versioncheck(self):
         return self._versioncheck
+
+    @property
+    def use_session(self):
+        return self._use_session
 
     #### active_folder ####
     @property
@@ -247,8 +266,14 @@ class Lb(object):
     
     def pool_get(self, name):
         """Returns a single F5 pool"""
-        pool = f5.Pool.factory.create([name], self)[0]
-        pool.refresh()
+        try:
+            pool = f5.Pool.factory.create([name], self)[0]
+            pool.refresh()
+        except ServerError as e:
+            if 'was not found.' in str(e):
+                raise PoolNotFound(name)
+            else:
+                raise
 
         return pool
 
@@ -259,8 +284,14 @@ class Lb(object):
 
     def pm_get(self, node, port, pool):
         """Returns a single F5 PoolMember"""
-        pm = f5.PoolMember.factory.create((node, port, pool), self)[0]
-        pm.refresh()
+        try:
+            pm = f5.PoolMember.factory.create((node, port, pool), self)[0]
+            pm.refresh()
+        except ServerError as e:
+            if 'was not found.' in str(e):
+                raise PoolMemberNotFound((node, port, pool))
+            else:
+                raise
 
         return pm
 
@@ -271,8 +302,14 @@ class Lb(object):
 
     def node_get(self, name):
         """Returns a single F5 Node"""
-        node = f5.Node.factory.create([name], self)[0]
-        node.refresh()
+        try:
+            node = f5.Node.factory.create([name], self)[0]
+            node.refresh()
+        except ServerError as e:
+            if 'was not found.' in str(e):
+                raise NodeNotFound(name)
+            else:
+                raise
 
         return node
 
@@ -283,8 +320,14 @@ class Lb(object):
 
     def rule_get(self, name):
         """Returns a single F5 Rule"""
-        rule = f5.Rule.factory.create([name], self)[0]
-        rule.refresh()
+        try:
+            rule = f5.Rule.factory.create([name], self)[0]
+            rule.refresh()
+        except ServerError as e:
+            if 'was not found.' in str(e):
+                raise RuleNotFound(name)
+            else:
+                raise
 
         return rule
 
@@ -295,8 +338,14 @@ class Lb(object):
 
     def vs_get(self, name):
         """Returns a single F5 VirtualServer"""
-        vs = f5.VirtualServer.factory.create([name], self)[0]
-        vs.refresh()
+        try:
+            vs = f5.VirtualServer.factory.create([name], self)[0]
+            vs.refresh()
+        except ServerError as e:
+            if 'was not found.' in str(e):
+                raise VirtualServerNotFound(name)
+            else:
+                raise
 
         return vs
 

@@ -1,7 +1,8 @@
-from bigsuds import ServerError
 import f5
 import f5.util
 import re
+
+from bigsuds import ServerError
 
 # Convert PoolMember objects into a list of address, port dictionaries
 def pms_to_addrportsq(poolmembers):
