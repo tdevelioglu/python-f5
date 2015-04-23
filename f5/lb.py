@@ -65,13 +65,21 @@ def recursivereader(func):
 class Lb(object):
     _version = 11
 
-    def __init__(self, host, username, password, versioncheck=True):
+    def __init__(self, host, username, password, versioncheck=True, use_session=True):
 
         self._host         = host
         self._username     = username
         self._versioncheck = versioncheck
+        self._use_session  = use_session
 
-        self._transport = bigsuds.BIGIP(host, username, password)
+        if use_session:
+            self._transport = bigsuds.BIGIP(
+                host, username, password
+            ).with_session_id()
+        else:
+            self._transport = bigsuds.BIGIP(
+                host, username, password
+            )
         version = self._transport.System.SystemInfo.get_version()
         if versioncheck and not 'BIG-IP_v11' in version:
             raise UnsupportedF5Version('This class only supports BIG-IP v11', version)
@@ -80,6 +88,7 @@ class Lb(object):
         self._recursive_query     = self.recursive_query
         self._transaction         = self.transaction
         self._transaction_timeout = self.transaction_timeout
+
 
     def __repr__(self):
         return "f5.Lb('%s')" % (self._host)
@@ -102,6 +111,10 @@ class Lb(object):
     @property
     def versioncheck(self):
         return self._versioncheck
+
+    @property
+    def use_session(self):
+        return self._use_session
 
     #### active_folder ####
     @property
