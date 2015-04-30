@@ -1,7 +1,10 @@
-from bigsuds import ServerError
 import f5
 import f5.util
 import re
+
+from .exceptions import NodeNotFound
+
+from bigsuds import ServerError
 
 def enabled_bool(enabled_statuses):
     """Switch from enabled_status to bool"""
@@ -396,7 +399,13 @@ class NodeList(list):
         self.ratio         = self._getattr('_ratio')
 
     def _lbcall(self, call, *args, **kwargs):
-        return Node._lbcall(self._lb, call, *args, **kwargs)
+        try:
+            return Node._lbcall(self._lb, call, *args, **kwargs)
+        except ServerError as e:
+            if 'was not found.' in str(e):
+                raise NodeNotFound(*args)
+            else:
+                raise
 
     def _setattr(self, attr, values):
         """Sets an attribute on all objects in list"""
