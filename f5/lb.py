@@ -127,6 +127,21 @@ class Lb(object):
         self._set_active_folder(value)
         self._active_folder =  value
 
+    #### version
+    @property
+    def version(self):
+        return self._call('System.SystemInfo.get_version')
+
+    #### system_information
+    @property
+    def system_information(self):
+        return self._call('System.SystemInfo.get_system_information')
+
+    #### product_information
+    @property
+    def product_information(self):
+        return self._call('System.SystemInfo.get_product_information')
+
     #### failover_state
     @property
     def failover_state(self):
