@@ -65,20 +65,22 @@ def recursivereader(func):
 class Lb(object):
     _version = 11
 
-    def __init__(self, host, username, password, versioncheck=True, use_session=True):
+    def __init__(self, host, username, password, versioncheck=True,
+                use_session=True, verify=True):
 
         self._host         = host
         self._username     = username
         self._versioncheck = versioncheck
         self._use_session  = use_session
+        self._verify       = verify
 
         if use_session:
             self._transport = bigsuds.BIGIP(
-                host, username, password
+                host, username, password, verify
             ).with_session_id()
         else:
             self._transport = bigsuds.BIGIP(
-                host, username, password
+                host, username, password, verify
             )
         version = self._transport.System.SystemInfo.get_version()
         if versioncheck and not 'BIG-IP_v11' in version:
@@ -115,6 +117,10 @@ class Lb(object):
     @property
     def use_session(self):
         return self._use_session
+
+    @property
+    def verify(self):
+        return self._verify
 
     #### active_folder ####
     @property
